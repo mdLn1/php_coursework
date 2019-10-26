@@ -1,15 +1,15 @@
 <?php
-$servername = "mysql.cms.gre.ac.uk";
-$username = "cp3526m";
-$password = "Peer21";
-$db = "mdb_cp3526m";
+ $host = "localhost";
+ $database = "phpcw";
+ $username = "root";
+ $password = "";
 
 // Create connection
-$conn = new mysqli($servername, $username, $password, $db);
+$mysqli = new mysqli($host, $username, $password, $database);
 
 // Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+if ($mysqli->connect_error) {
+    die("Connection failed: " . $mysqli->connect_error);
 }
 echo "Connected successfully";
 ?>

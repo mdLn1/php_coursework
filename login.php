@@ -49,7 +49,7 @@ if ($result->num_rows > 0) {
           <a class="nav-link text-light" href="#">Login</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link text-light" href="#">Sign Up</a>
+          <a class="nav-link text-light" href="myregister.php">Sign Up</a>
         </li>
      </ul>
      <form class="form-inline my-2 my-lg-0">
@@ -70,39 +70,7 @@ if ($result->num_rows > 0) {
   </div>
   <button type="submit" class="btn btn-primary">Login</button>
 </form>
-<form method="post" id="signupForm" style="display: none;">
-    <div class="form-group">
-    <label for="ID">ID</label>
-    <input type="text" class="form-control" id="ID" aria-describedby="IDHelp" placeholder="Enter ID">
-  </div>
 
-    <div class="form-group">
-    <label for="email">Email</label>
-    <input type="email" class="form-control" id="email" aria-describedby="email" placeholder="Enter ID">
-  </div>
-    <div class="form-group">
-    <label for="group">Group</label>
-    <select class="form-control" id="group" aria-describedby="group">
-        <option value="1" selected>1</option>
-        <option value="2" selected>2</option>
-        <option value="3" selected>3</option>
-        <option value="4" selected>4</option>
-        <option value="5" selected>5</option>
-        <option value="6" selected>6</option>
-        <option value="7" selected>7</option>
-        <option value="8" selected>8</option>
-        <option value="9" selected>9</option>
-        <option value="10" selected>10</option>
-        </select>
-  </div>
-  <div class="form-group">
-    <label for="exampleInputPassword1">Password</label>
-    <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
-  </div>
-  <button type="submit" class="btn btn-primary">Sign up</button>
-</form>
-
-</div>
 
 <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
 <script src="js/tether.min.js"></script>
