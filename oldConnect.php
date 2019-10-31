@@ -1,4 +1,4 @@
-dsa<?php
+<?php
  $host = "mysql.cms.gre.ac.uk";
  $database = "mdb_cp3526m";
  $username = "cp3526m";
