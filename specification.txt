@@ -1,0 +1,35 @@
+Level 1 
+Student: 9digit unique ID, unique email address, password,
+CAPTCHA string, and group
+Group: max 3 members
+Preregistered tutor: login with ID and password
+
+add logout; authentication credentials should be protected
+from interception in transit;
+
+Level 2
+on login: student sees his registered peers from group
+assess them with a grade between 0 and 10, textual justification
+and an image
+student can save the peer evaluation without finalising it
+once finalized no more changes can be done (edit/delete)
+!!! prevent SQL injection
+
+Level 3
+Tutor can view all groups and the registered members
+Tutor can see individual student's overall 
+profile (ID, overall grade) and each grade received
+from every student together with the text and image
+!!! only if peer evaluations are finalized
+Tutor can search for student by ID 
+search results must be returned in a paginated list
+search results can be filtered by lower to higher or higher to 
+lower  while searching via numeric grade
+Tutor can send the completed group’s grades via email
+Keep the body of the email concise, e.g., only the ID 
+and corresponding overall grade). Note that there should be
+six finalised peer evaluations in order to be a completed group
+
+Level 4
+Cookie to remember ID
+Cookie to remember last search term
