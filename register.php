@@ -10,7 +10,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $ID_err = "Please enter an ID number.";
     } else {
         // Prepare a select statement
-        $sql = "SELECT student_id FROM students WHERE student_id = ?";
+        $sql = "SELECT ID FROM users WHERE ID = ?";
 
         if ($stmt = $mysqli->prepare($sql)) {
             // Bind variables to the prepared statement as parameters
