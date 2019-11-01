@@ -75,16 +75,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($ID_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err)) {
 
         // Prepare an insert statement
-        $sql = "INSERT INTO students (student_id, email, password) VALUES (?, ?, ?)";
+        $sql = "INSERT INTO users (ID, email, pass) VALUES (?, ?, ?)";
 
         if ($stmt = $mysqli->prepare($sql)) {
             // Bind variables to the prepared statement as parameters
-            $stmt->bind_param("sss", $param_ID, $param_email, $param_password);
+            $stmt->bind_param("sss", $param_ID, $param_email, $param_pass);
 
             // Set parameters
             $param_ID = $ID;
             $param_email = $email;
-            $param_password = password_hash($password, PASSWORD_DEFAULT); // Creates a password hash
+            $param_pass = password_hash($password, PASSWORD_DEFAULT); // Creates a password hash
 
             // Attempt to execute the prepared statement
             if ($stmt->execute()) {
