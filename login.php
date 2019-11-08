@@ -10,13 +10,20 @@ if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
 
 // Include config file
 require "classes/oldConnect.php";
+require "createCaptcha.php";
 
 // Define variables and initialize with empty values
-$ID = $password = "";
-$ID_err = $password_err = "";
+$ID = $password = $confirm_captcha = "";
+$ID_err = $password_err = $confirm_captcha_err = "";
+$captchaImg = makeImgCaptcha();
 
 // Processing form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  if ($confirm_captcha != $_SESSION["captcha"]) {
+    $captchaImg = makeImgCaptcha();
+    $confirm_captcha_err = "Captcha string does not match";
+    $confirm_captcha = "";
+  }
 
   // Check if ID is empty
   if (empty(trim($_POST["ID"]))) {
@@ -35,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   // Validate credentials
   if (empty($ID_err) && empty($password_err)) {
     // Prepare a select statement
-    $sql = "SELECT ID, pass FROM users WHERE ID = ?";
+    $sql = "SELECT ID, pass, role FROM users WHERE ID = ?";
 
     if ($stmt = $mysqli->prepare($sql)) {
       // Bind variables to the prepared statement as parameters
@@ -52,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Check if ID exists, if yes then verify password
         if ($stmt->num_rows == 1) {
           // Bind result variables
-          $stmt->bind_result($ID, $hashed_password);
+          $stmt->bind_result($ID, $hashed_password, $role);
           if ($stmt->fetch()) {
             if (password_verify($password, $hashed_password)) {
               // Password is correct, so start a new session
@@ -61,9 +68,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               // Store data in session variables
               $_SESSION["loggedin"] = true;
               $_SESSION["ID"] = $ID;
+              $_SESSION["role"] = $role;
 
               // Redirect user to welcome page
-              header("location: welcome.php");
+              if ($role == "student") {
+                header("location: welcome.php");
+              } else {
+                header("location: welcomeTutor.php");
+              }
             } else {
               // Display an error message if password is not valid
               $password_err = "The password you entered was not valid.";
@@ -97,6 +109,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <title>Home</title>
   <link rel="stylesheet" href="css/bootstrap.min.css">
   <link rel="stylesheet" href="css/custom.css">
+  <style>
+    img {
+      margin-bottom: 1rem;
+    }
+
+    #captcha-button {
+      padding: 1rem;
+      border-radius: .5rem;
+      background-color: #5a6268;
+      color: white;
+    }
+  </style>
 </head>
 
 <body>
@@ -116,17 +140,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" value="<?php echo $password ?>">
         <span class="error-input"><?php echo $password_err; ?></span>
       </div>
+      <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
+        <img id="captcha-image" src='data:image/jpeg;base64,<?php echo $captchaImg ?>' alt="captcha image" />
+        <input type="button" id="captcha-button" value="Regenerate" />
+        <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
+        <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
+      </div>
       <button type="submit" class="btn btn-primary">Login</button>
     </form>
     <p>Don't have an account yet? <a href="register.php">Sign up here</a></p>
   </div>
 
-  <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
   <script src="js/tether.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
   <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
   <script src="js/ie10-viewport-bug-workaround.js"></script>
   <script src="js/Bootstrap_tutorial.js"></script>
+  <script>
+    $(document).ready(function() {
+      $("#captcha-button").on('click', function(event) {
+        event.preventDefault();
+        $.ajax({
+          url: 'createCaptcha.php',
+          data: {
+            action: 'regenerate'
+          },
+          type: 'GET',
+          dataType: 'JSON',
+          success: function(output) {
+            // console.log(output.imageCode);
+            $("#captcha-image").attr("src", "data:image/jpeg;base64," + output.imageCode)
+          }
+        })
+      })
+    });
+  </script>
 </body>
 
 </html>

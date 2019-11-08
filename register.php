@@ -1,8 +1,42 @@
 <?php // Define variables and initialize with empty values
-$ID = $group = $email = $password = $confirm_password = "";
-$ID_err = $group_err = $email_err = $password_err = $confirm_password_err = "";
+$ID = $confirm_captcha = $group = $email = $password = $confirm_password = "";
+$ID_err = $confirm_captcha_err = $group_err = $email_err = $password_err = $confirm_password_err = "";
+
 
 require "classes/oldConnect.php";
+require "createCaptcha.php";
+$groups = [];
+$captchaImg = makeImgCaptcha();
+function findGroupsAvailable($sqliDb)
+{
+    $sql = "SELECT COUNT(ID), group_number
+        FROM students
+        GROUP BY group_number
+        ORDER BY COUNT(ID) ASC";
+    $result = $sqliDb->query($sql);
+    if ($result->num_rows > 0) {
+        // output data of each row
+        while ($row = $result->fetch_assoc()) {
+            if ($row['COUNT(ID)'] == 3) {
+                $data[] = $row;
+            }
+        }
+        return $data;
+    } 
+    return [];
+}
+$groups = findGroupsAvailable($mysqli);
+$availableGroups = [];
+if (!empty($groups)) {
+    for ($i = 1; $i < 11; $i++) {
+        if (in_array($i, array_column($groups, 'group_number'))) {
+            continue;
+        }
+        array_push($availableGroups, $i);
+    }
+} else {
+    $availableGroups = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+}
 // Processing form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Validate username
@@ -36,6 +70,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Close statement
         $stmt->close();
+    }
+
+    if ($confirm_captcha != $_SESSION["captcha"]) {
+        $captchaImg = makeImgCaptcha();
+        $confirm_captcha_err = "Captcha string does not match";
+        $confirm_captcha = "";
     }
 
     // Validate email
@@ -106,7 +146,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html>
 
-
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
@@ -114,6 +153,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>Register</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/custom.css">
+    <style>
+        img {
+            margin-bottom: 1rem;
+        }
+
+        #captcha-button {
+            padding: 1rem;
+            border-radius: .5rem;
+            background-color: #5a6268;
+            color: white;
+        }
+    </style>
 </head>
 
 <body>
@@ -135,18 +186,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <span class="error-input"><?php echo $email_err; ?></span>
             </div>
             <div class="form-group <?php echo (!empty($group_err)) ? 'has-error' : ''; ?>">
-                <label for="group">Group</label>
+                <label for="group">Available Groups</label>
                 <select class="form-control" name="group" id="group" aria-describedby="group" value="<?php echo $group ?>">
-                    <option value="1" selected>1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
+                    <?php
+                    foreach ($availableGroups as $value) : ?>
+                            <option value="<?php echo $value ?>"><?php echo $value ?></option>
+                    <?php endforeach; ?>
                 </select>
                 <span class="error-input"><?php echo $group_err; ?></span>
             </div>
@@ -160,15 +205,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <input type="password" name="confirm_password" class="form-control" id="exampleInputPassword2" placeholder="Confirm Password" value="<?php echo $confirm_password ?>">
                 <span class="error-input"><?php echo $confirm_password_err; ?></span>
             </div>
+            <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
+                <img id="captcha-image" src='data:image/jpeg;base64,<?php echo $captchaImg ?>' alt="captcha image" />
+                <input type="button" id="captcha-button" value="Regenerate" />
+                <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
+                <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
+            </div>
             <button type="submit" class="btn btn-primary">Sign up</button>
         </form>
     </div>
-    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="js/tether.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <script src="js/ie10-viewport-bug-workaround.js"></script>
     <script src="js/Bootstrap_tutorial.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#captcha-button").on('click', function(event) {
+                event.preventDefault();
+                $.ajax({
+                    url: 'createCaptcha.php',
+                    data: {
+                        action: 'regenerate'
+                    },
+                    type: 'GET',
+                    dataType: 'JSON',
+                    success: function(output) {
+                        // console.log(output.imageCode);
+                        $("#captcha-image").attr("src", "data:image/jpeg;base64," + output.imageCode)
+                    }
+                })
+            })
+        });
+    </script>
 </body>
 
 </html>

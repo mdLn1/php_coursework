@@ -18,3 +18,7 @@ form {
       font-size: .8rem;
       font-family: Verdana, Geneva, Tahoma, sans-serif;
   }
+
+body {
+  background-color: #e9ecef;
+}
