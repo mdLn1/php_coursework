@@ -11,20 +11,14 @@ if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
 // Include config file
 require "classes/oldConnect.php";
 require "createCaptcha.php";
-
 // Define variables and initialize with empty values
 $ID = $password = $confirm_captcha = "";
 $ID_err = $password_err = $confirm_captcha_err = "";
-$captchaImg = makeImgCaptcha();
 
 // Processing form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  if ($confirm_captcha != $_SESSION["captcha"]) {
-    $captchaImg = makeImgCaptcha();
-    $confirm_captcha_err = "Captcha string does not match";
-    $confirm_captcha = "";
-  }
-
+  $correctCaptcha = $_SESSION["captcha"];
+  echo " Captcha input = " . trim($_POST["confirm_captcha"]) . " Captcha session = " .  $correctCaptcha;
   // Check if ID is empty
   if (empty(trim($_POST["ID"]))) {
     $ID_err = "Please enter ID.";
@@ -39,8 +33,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = trim($_POST["password"]);
   }
 
+  if (empty(trim($_POST["confirm_captcha"]))) {
+    $confirm_captcha_err = "Captcha string does not match";
+    $confirm_captcha = "";
+  } else {
+    if (trim($_POST["confirm_captcha"]) != $correctCaptcha) {
+      $confirm_captcha_err = "Captcha string does not match";
+      $confirm_captcha = "";
+    } else {
+      $confirm_captcha = trim($_POST["confirm_captcha"]);
+    }
+  }
+
   // Validate credentials
-  if (empty($ID_err) && empty($password_err)) {
+  if (empty($ID_err) && empty($password_err) && empty($confirm_captcha_err)) {
     // Prepare a select statement
     $sql = "SELECT ID, pass, role FROM users WHERE ID = ?";
 
@@ -110,7 +116,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <link rel="stylesheet" href="css/bootstrap.min.css">
   <link rel="stylesheet" href="css/custom.css">
   <style>
-    img {
+    img#captcha-image {
       margin-bottom: 1rem;
     }
 
@@ -141,8 +147,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <span class="error-input"><?php echo $password_err; ?></span>
       </div>
       <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
-        <img id="captcha-image" src='data:image/jpeg;base64,<?php echo $captchaImg ?>' alt="captcha image" />
+        <img id="captcha-image" src='data:image/jpeg;base64,<?php $captchaImg = makeImgCaptcha();
+                                                            echo $captchaImg; ?>' alt="captcha image" />
         <input type="button" id="captcha-button" value="Regenerate" />
+        <?php echo $_SESSION["captcha"]; ?>
         <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
         <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
       </div>

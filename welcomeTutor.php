@@ -32,6 +32,8 @@ if ($_SESSION["role"] == "tutor") {
     <meta name="description" content="">
     <meta name="author" content="">
     <title>Tutor students checks</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/custom.css">
     <style>
@@ -41,7 +43,7 @@ if ($_SESSION["role"] == "tutor") {
             width: 80%;
         }
 
-        body {
+        #container-table {
             text-align: center;
         }
 
@@ -65,45 +67,118 @@ if ($_SESSION["role"] == "tutor") {
         td:hover .cont::before {
             content: '\00bb';
         }
+
+        .dropbtn {
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* The container <input> - needed to position the dropdown content */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Dropdown Content (Hidden by Default) */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 140px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        /* Links inside the dropdown */
+        .dropdown-content span {
+            color: black;
+            cursor: pointer;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+
+        /* Change color of dropdown links on hover */
+        .dropdown-content span:hover {
+            background-color: #111111;
+            color: white;
+        }
+
+        /* Show the dropdown menu on hover */
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        i {
+            border: solid white;
+            border-width: 0 3px 3px 0;
+            display: inline-block;
+            padding: 3px;
+            margin-top: -13px;
+            margin-left: .5rem;
+        }
+
+        .down {
+            transform: rotate(45deg);
+            -webkit-transform: rotate(45deg);
+        }
     </style>
 </head>
 
 <body>
     <?php include("navbarTutor.php") ?>
-    <h1 style="margin-bottom: 1rem;">Students</h1>
-    <div class="content-wrapper">
-        <table class="table">
-            <thead class="thead-dark">
-                <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Student's ID</th>
-                    <th scope="col">Group Number</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php $count = 1;
-                foreach ($data as $value) : ?>
-                    <tr>
-                        <th scope="row"><?php echo $count ?></th>
-                        <td><span class="cont"></span><span class="stdid"><?php echo $value["ID"] ?></span></td>
-                        <td><span class="cont"></span><?php echo $value["group_number"] ?></td>
-                    </tr>
-                    <?php $count++; ?>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+    <div style="position: relative; margin-bottom: 1rem; padding-bottom: 1rem;">
+        <form class="form-inline my-2 my-lg-0" style="position: absolute; right: 0; top: 0;">
+            <div class="dropdown">
+                <button class="dropbtn btn btn-secondary">Search By: <span id="search-criteria">ID</span> <i class="arrow down"></i></button>
+                <div class="dropdown-content">
+                    <span class="search-option">ID</span>
+                    <span class="search-option">Group</span>
+                    <span class="search-option">Grade</span>
+                </div>
+            </div>
+            <input class="form-control mr-sm-2" type="text" style="padding-left: 1rem; margin-left: 1rem;" placeholder="Search">
+            <input type="submit" class="btn btn-success" value="Search" />
+            </input>
+        </form>
     </div>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="js/tether.min.js"></script>
-    <script src="js/bootstrap.min.js"></script>
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="js/ie10-viewport-bug-workaround.js"></script>
-    <script src="js/Bootstrap_tutorial.js"></script>
+
+    <div id="container-table">
+        <h1 style="margin-bottom: 1rem;">Students</h1>
+        <div class="content-wrapper">
+            <table class="table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Student's ID</th>
+                        <th scope="col">Group Number</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php $count = 1;
+                    foreach ($data as $value) : ?>
+                        <tr>
+                            <th scope="row"><?php echo $count ?></th>
+                            <td><span class="cont"></span><span class="stdid"><?php echo $value["ID"] ?></span></td>
+                            <td><span class="cont"></span><?php echo $value["group_number"] ?></td>
+                        </tr>
+                        <?php $count++; ?>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <script>
         $(document).ready(function() {
             $(".stdid").click(function() {
                 window.location = 'studentRecord.php?studentid=' + $(this).text().trim();
             });
+            $(".search-option").on("click", function(event) {
+                event.preventDefault();
+                $("#search-criteria").html(event.target.innerHTML);
+            })
         });
     </script>
 </body>

@@ -1,26 +1,25 @@
 Level 1 
-Student: 9digit unique ID, unique email address, password,
-CAPTCHA string, and group
-Group: max 3 members
-Preregistered tutor: login with ID and password
+Student: 9digit unique ID, unique email address, password, and group  >> OK
+Group: max 3 members  >> OK
+Preregistered tutor: login with ID and password  >> OK
 
 add logout; authentication credentials should be protected
-from interception in transit;
+from interception in transit;  >> OK
 
 Level 2
-on login: student sees his registered peers from group
+on login: student sees his registered peers from group  >> OK
 assess them with a grade between 0 and 10, textual justification
-and an image
-student can save the peer evaluation without finalising it
-once finalized no more changes can be done (edit/delete)
+and an image  >> OK
+student can save the peer evaluation without finalising it  >> OK
+once finalized no more changes can be done (edit/delete)  >> OK
 !!! prevent SQL injection
 
 Level 3
-Tutor can view all groups and the registered members
+Tutor can view all groups and the registered members  >> OK
 Tutor can see individual student's overall 
 profile (ID, overall grade) and each grade received
 from every student together with the text and image
-!!! only if peer evaluations are finalized
+!!! only if peer evaluations are finalized  >> Needs to be checked
 Tutor can search for student by ID 
 search results must be returned in a paginated list
 search results can be filtered by lower to higher or higher to 

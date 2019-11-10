@@ -1,12 +1,13 @@
 <?php // Define variables and initialize with empty values
+session_start();
+
 $ID = $confirm_captcha = $group = $email = $password = $confirm_password = "";
 $ID_err = $confirm_captcha_err = $group_err = $email_err = $password_err = $confirm_password_err = "";
-
-
+$accountCreated = false;
 require "classes/oldConnect.php";
 require "createCaptcha.php";
 $groups = [];
-$captchaImg = makeImgCaptcha();
+
 function findGroupsAvailable($sqliDb)
 {
     $sql = "SELECT COUNT(ID), group_number
@@ -22,7 +23,22 @@ function findGroupsAvailable($sqliDb)
             }
         }
         return $data;
-    } 
+    }
+    return [];
+}
+function findStudentsFromGroup($sqliDb, $number, $id)
+{
+    $sql = "SELECT ID FROM students WHERE group_number = $number";
+    $result = $sqliDb->query($sql);
+    // output data of each row
+    if ($result->num_rows > 1) {
+        while ($row = $result->fetch_assoc()) {
+            if ($row['ID'] != $id) {
+                $data[] = $row;
+            }
+        }
+        return $data;
+    }
     return [];
 }
 $groups = findGroupsAvailable($mysqli);
@@ -40,6 +56,7 @@ if (!empty($groups)) {
 // Processing form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Validate username
+    $correctCaptcha = $_SESSION["captcha"];
     if (empty(trim($_POST["ID"]))) {
         $ID_err = "Please enter an ID number.";
     } else {
@@ -72,11 +89,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->close();
     }
 
-    if ($confirm_captcha != $_SESSION["captcha"]) {
-        $captchaImg = makeImgCaptcha();
-        $confirm_captcha_err = "Captcha string does not match";
-        $confirm_captcha = "";
-    }
 
     // Validate email
     if (empty(trim($_POST["email"]))) {
@@ -111,8 +123,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
+    if (empty(trim($_POST["confirm_captcha"]))) {
+        $confirm_captcha_err = "Captcha string does not match";
+        $confirm_captcha = "";
+    } else {
+        if (trim($_POST["confirm_captcha"]) != $correctCaptcha) {
+            $confirm_captcha_err = "Captcha string does not match";
+            $confirm_captcha = "";
+        } else {
+            $confirm_captcha = trim($_POST["confirm_captcha"]);
+        }
+    }
+
     // Check input errors before inserting in database
-    if (empty($ID_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err)) {
+    if (empty($ID_err) && empty($email_err) && empty($group_err) && empty($confirm_captcha_err) && empty($password_err) && empty($confirm_password_err)) {
 
         // Prepare an insert statement
         $sql = "INSERT INTO users (ID, email, pass) VALUES (?, ?, ?)";
@@ -128,8 +152,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             // Attempt to execute the prepared statement
             if ($stmt->execute()) {
-                // Redirect to login page
-                header("location: login.php");
+                $sql = "INSERT INTO students (ID, group_number) VALUES (?, ?)";
+                if ($stmt = $mysqli->prepare($sql)) {
+                    $stmt->bind_param("ss", $param_ID, $param_group);
+                    $param_ID = $ID;
+                    $param_group = $group;
+                    if ($stmt->execute()) {
+                        $accountCreated = true;
+                        $others = findStudentsFromGroup($mysqli, $group, $ID);
+                        if (count($others) > 0) {
+                            foreach ($others as $student) {
+                                $colleagueID = $student["ID"];
+                                $sql = "INSERT INTO assessments (grader_id, graded_id) VALUES ($colleagueID, $ID)";
+                                $mysqli->query($sql);
+                                $sql = "INSERT INTO assessments (grader_id, graded_id) VALUES ($ID, $colleagueID)";
+                                $mysqli->query($sql);
+                            }
+                        }
+                        $ID = $confirm_captcha = $group = $email = $password = $confirm_password = "";
+                        $ID_err = $confirm_captcha_err = $group_err = $email_err = $password_err = $confirm_password_err = "";
+                    }
+                }
+                // Redirect to login pages
             } else {
                 echo "Something went wrong. Please try again later.";
             }
@@ -154,7 +198,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/custom.css">
     <style>
-        img {
+        img#captcha-image {
             margin-bottom: 1rem;
         }
 
@@ -169,7 +213,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <body>
     <?php include("navbar.php") ?>
-
+    <?php if ($accountCreated) : ?>
+        <div class="alert alert-success" role="alert">
+            <h4 class="alert-heading">Account Successfully created!</h4>
+            <p>Please head in to the <a class="navbar-brand" href="login.php">Login</a> page in order to login.</p>
+        </div>
+    <?php endif; ?>
     <div class="form-container">
         <h2>Register</h2>
         <p>Please fill this form to create an account.</p>
@@ -190,7 +239,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <select class="form-control" name="group" id="group" aria-describedby="group" value="<?php echo $group ?>">
                     <?php
                     foreach ($availableGroups as $value) : ?>
-                            <option value="<?php echo $value ?>"><?php echo $value ?></option>
+                        <option value="<?php echo $value ?>"><?php echo $value ?></option>
                     <?php endforeach; ?>
                 </select>
                 <span class="error-input"><?php echo $group_err; ?></span>
@@ -206,8 +255,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <span class="error-input"><?php echo $confirm_password_err; ?></span>
             </div>
             <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
-                <img id="captcha-image" src='data:image/jpeg;base64,<?php echo $captchaImg ?>' alt="captcha image" />
+                <img id="captcha-image" src='data:image/jpeg;base64,<?php $captchaImg = makeImgCaptcha();
+                                                                    echo $captchaImg; ?>' alt="captcha image" />
                 <input type="button" id="captcha-button" value="Regenerate" />
+                <?php echo $_SESSION["captcha"]; ?>
                 <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
                 <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
             </div>
@@ -215,11 +266,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </form>
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="js/tether.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="js/ie10-viewport-bug-workaround.js"></script>
-    <script src="js/Bootstrap_tutorial.js"></script>
     <script>
         $(document).ready(function() {
             $("#captcha-button").on('click', function(event) {
@@ -232,7 +279,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     type: 'GET',
                     dataType: 'JSON',
                     success: function(output) {
-                        // console.log(output.imageCode);
                         $("#captcha-image").attr("src", "data:image/jpeg;base64," + output.imageCode)
                     }
                 })
