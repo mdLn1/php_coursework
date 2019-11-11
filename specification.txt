@@ -19,7 +19,7 @@ Tutor can view all groups and the registered members  >> OK
 Tutor can see individual student's overall 
 profile (ID, overall grade) and each grade received
 from every student together with the text and image
-!!! only if peer evaluations are finalized  >> Needs to be checked
+!!! only if peer evaluations are finalized  >> OK
 Tutor can search for student by ID 
 search results must be returned in a paginated list
 search results can be filtered by lower to higher or higher to 

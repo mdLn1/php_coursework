@@ -3,7 +3,7 @@ session_start();
 $data = array();
 require "classes/oldConnect.php";
 require "fetchImage.php";
-$group_number = $image_err = $image_success = "";
+$group_number = $image_err = $image_success = $record_updated = "";
 if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     header("location: login.php");
     exit;
@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $param_grader_id = $_SESSION["ID"];
         $param_graded_id = $_POST["graded_id"];
         if ($stmt->execute()) {
-            echo "Updated";
+            $record_updated = "<p>Information has been successfully updated for $param_graded_id.</p>";
         }
         $stmt->close();
     }
@@ -176,9 +176,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php echo $image_err ?>
         </div>
     <?php endif; ?>
-    <?php if (!empty($image_success)) : ?>
+    <?php if (!empty($record_updated)) : ?>
         <div class="alert alert-success" role="alert">
-            <h4 class="alert-heading">Image uploaded successfully!</h4>
+            <h4 class="alert-heading">Record updated!</h4>
+            <?php echo $record_updated ?>
             <?php echo $image_success ?>
         </div>
     <?php endif; ?>
