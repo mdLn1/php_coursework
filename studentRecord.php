@@ -1,16 +1,17 @@
 <?php
 session_start();
+
+include "checks/databaseConnection.php";
+
+include "checks/loggedIn.php";
+include "checks/studentLogged.php";
+include "functionality/fetchImage.php";
+
 $data = array();
 $studentid = $overall = $votes = $found = 0;
 $overall_err = "";
 $finished = false;
-require "classes/oldConnect.php";
-require "fetchImage.php";
 
-if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
-    header("location: login.php");
-    exit;
-}
 if (!empty($_SERVER['QUERY_STRING'])) {
     $queries = array();
     parse_str($_SERVER['QUERY_STRING'], $queries);
@@ -37,7 +38,7 @@ if (!empty($_SERVER['QUERY_STRING'])) {
                 } else if ($length == 2) {
                     $overall_err = "Peers have not finished their evaluation.";
                 }
-            } else {
+            } else if ($votes === 2) {
                 foreach ($data as $peerEval) {
                     $overall += $peerEval["grade"];
                 }
@@ -76,6 +77,7 @@ if (!empty($_SERVER['QUERY_STRING'])) {
         .img-container {
             width: 5rem;
             height: auto;
+            min-width: 3rem;
         }
 
         div.col-sm-6 {
@@ -85,18 +87,22 @@ if (!empty($_SERVER['QUERY_STRING'])) {
             z-index: 1;
             box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         }
+
         label {
             font-weight: bold;
         }
+
         input {
             padding-left: 1rem;
         }
+
         .stdid {
             text-decoration: underline;
-            color:blue;
+            color: blue;
             font-size: 1.5rem;
-            font-family:'Times New Roman', Times, serif;
+            font-family: 'Times New Roman', Times, serif;
         }
+
         .stdid:hover {
             cursor: pointer;
         }
@@ -104,7 +110,7 @@ if (!empty($_SERVER['QUERY_STRING'])) {
 </head>
 
 <body>
-    <?php include("navbarTutor.php") ?>
+<?php include("pageContent/navbar.php") ?>
     <div class="record-container">
         <h1>Student <?php echo $studentid ?> record</h1>
         <br />

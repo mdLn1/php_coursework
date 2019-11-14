@@ -1,3 +1,11 @@
 <?php $img_details = getImage($mysqli, $value['image_id']); ?>
 <img src='data:<?php echo trim($img_details["img_type"]);?>;base64,<?php echo base64_encode($img_details["img"]);?>' alt="<?php echo trim($img_details["img_name"]); ?>" />
  
+ if ( preg_match('/[^a-zA-Z]|^$/',$title) )
+   $strValid .= "  Title<br />\n";
+if ( preg_match('/[^a-zA-Z]|^$/',$initials) )
+   $strValid .= "  Initials<br />\n";
+if ( preg_match('/[^a-zA-Z\-']|^$/',$surname) )
+   $strValid .= "  Surname<br />\n";
+if ( !preg_match('/^([\w\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})$/',$email) )
+   $strValid .= "  Email<br />\n";

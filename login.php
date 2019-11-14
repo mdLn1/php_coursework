@@ -1,16 +1,9 @@
 <?php
 // Initialize the session
 session_start();
+include "checks/databaseConnection.php";
+include "functionality/createCaptcha.php";
 
-// Check if the user is already logged in, if yes then redirect him to welcome page
-if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
-  header("location: welcome.php");
-  exit;
-}
-
-// Include config file
-require "classes/oldConnect.php";
-require "createCaptcha.php";
 // Define variables and initialize with empty values
 $ID = $password = $confirm_captcha = "";
 $ID_err = $password_err = $confirm_captcha_err = "";
@@ -18,10 +11,9 @@ $ID_err = $password_err = $confirm_captcha_err = "";
 // Processing form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
   $correctCaptcha = $_SESSION["captcha"];
-  echo " Captcha input = " . trim($_POST["confirm_captcha"]) . " Captcha session = " .  $correctCaptcha;
   // Check if ID is empty
   if (empty(trim($_POST["ID"]))) {
-    $ID_err = "Please enter ID.";
+    $ID_err = "Please enter your ID.";
   } else {
     $ID = trim($_POST["ID"]);
   }
@@ -130,7 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 
 <body>
-  <?php include("navbar.php") ?>
+<?php include("pageContent/navbar.php") ?>
 
   <div class="form-container">
     <h2>Login</h2>

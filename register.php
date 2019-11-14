@@ -4,8 +4,8 @@ session_start();
 $ID = $confirm_captcha = $group = $email = $password = $confirm_password = "";
 $ID_err = $confirm_captcha_err = $group_err = $email_err = $password_err = $confirm_password_err = "";
 $accountCreated = false;
-require "classes/oldConnect.php";
-require "createCaptcha.php";
+include "checks/databaseConnection.php";
+require "functionality/createCaptcha.php";
 $groups = [];
 
 function findGroupsAvailable($sqliDb)
@@ -91,11 +91,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 
     // Validate email
-    if (empty(trim($_POST["email"]))) {
-        $email_err = "Please enter an email.";
-    } else {
-        $email = trim($_POST["email"]);
-    }
+    include "checks/checkEmail.php";
 
     // Validate email
     if (empty(trim($_POST["group"]))) {
@@ -212,7 +208,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 
 <body>
-    <?php include("navbar.php") ?>
+    <?php include("pageContent/navbar.php") ?>
     <?php if ($accountCreated) : ?>
         <div class="alert alert-success" role="alert">
             <h4 class="alert-heading">Account Successfully created!</h4>

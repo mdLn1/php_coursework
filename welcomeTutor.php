@@ -1,29 +1,8 @@
 <?php
 session_start();
-$data = array();
-$sql = "";
-$pageNumber = $totalPages = $resultsFound = 0;
-require "classes/oldConnect.php";
-if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
-    header("location: login.php");
-    exit;
-}
-if ($_SESSION["role"] == "student") {
-    header("location: welcome.php");
-    exit;
-}
 
-if ($_SESSION["role"] == "tutor") {
-    $sql = "SELECT * FROM students ORDER BY group_number ASC";
-    $result = $mysqli->query($sql);
-    if ($result->num_rows > 0) {
-        // output data of each row
-        while ($row = $result->fetch_assoc()) {
-            $data[] = $row;
-        }
-    }
-    $resultsFound = count($data);
-}
+include "checks/loggedIn.php";
+include "checks/studentLogged.php";
 ?>
 <!DOCTYPE html>
 <html>
@@ -124,80 +103,123 @@ if ($_SESSION["role"] == "tutor") {
             transform: rotate(45deg);
             -webkit-transform: rotate(45deg);
         }
+
+        li:hover {
+            cursor: pointer;
+        }
+
+        li.disabled:hover {
+            cursor: not-allowed;
+        }
+
+        .pagination {
+            justify-content: center;
+        }
     </style>
+
 </head>
 
 <body>
-    <?php include("navbar.php") ?>
-    <div style="position: relative; margin-bottom: 1rem; padding-bottom: 1rem;">
-        <form class="form-inline my-2 my-lg-0" style="position: absolute; right: 0; top: 0;" id="search-form">
+    <?php include("pageContent/navbar.php") ?>
+    <div style="padding: 1rem;">
+        <div class="alert alert-danger" id="top-alert" role="alert" style="display: none;">
+            <h4 class="alert-heading">Error! Request not completed</h4>
+            <p id="error-message"></p>
+        </div>
+        <div style="position: relative; margin-bottom: 1rem; padding-bottom: 1rem;">
+            <form class="form-inline my-2 my-lg-0" style="position: absolute; right: 0; top: 0;" id="search-form">
+                <div class="dropdown">
+                    <button class="dropbtn btn btn-secondary">Search By: <span id="search-criteria">ID</span> <i class="arrow down"></i></button>
+                    <div class="dropdown-content">
+                        <span class="search-option">ID</span>
+                        <span class="search-option">Grade</span>
+                    </div>
+                </div>
+                <div class="dropdown" id="over-under" style="display: none; margin-left: .5rem; ">
+                    <button class="dropbtn btn btn-secondary"><span id="grade-criteria">Over</span> <i class="arrow down"></i></button>
+                    <div class="dropdown-content">
+                        <span class="grade-option">Over</span>
+                        <span class="grade-option">Under</span>
+                    </div>
+                </div>
+                <div class="form-group" style="display: inline-block; position: relative;">
+                    <input class="form-control mr-sm-2" type="text" id="search-content" style="padding-left: 1rem; margin-left: 1rem;" placeholder="Search">
+                    <span id="search-error" style="position:absolute; color:red; top: -1.5rem; left: 1rem; display:none;">Only digits allowed!</span>
+                </div>
+                <input type="submit" class="btn btn-success" value="Search" />
+                </input>
+            </form>
+        </div>
+        <div id="sorting-container" style="display: none;">
             <div class="dropdown">
-                <button class="dropbtn btn btn-secondary">Search By: <span id="search-criteria">ID</span> <i class="arrow down"></i></button>
+                <button class="dropbtn btn btn-secondary">Sorting: <span id="sorting-criteria">Ascending</span> <i class="arrow down"></i></button>
                 <div class="dropdown-content">
-                    <span class="search-option">ID</span>
-                    <span class="search-option">Grade</span>
+                    <span class="sorting-option">Ascending</span>
+                    <span class="sorting-option">Descending</span>
                 </div>
-            </div>
-            <div class="dropdown" id="over-under" style="display: none; margin-left: .5rem; ">
-                <button class="dropbtn btn btn-secondary"><span id="grade-criteria">Over</span> <i class="arrow down"></i></button>
-                <div class="dropdown-content">
-                    <span class="grade-option">Over</span>
-                    <span class="grade-option">Under</span>
-                </div>
-            </div>
-            <div class="form-group" style="display: inline-block; position: relative;">
-                <input class="form-control mr-sm-2" type="text" id="search-content" style="padding-left: 1rem; margin-left: 1rem;" placeholder="Search">
-                <span id="search-error" style="position:absolute; color:red; top: -1.5rem; left: 1rem; display:none;">Only digits allowed!</span>
-            </div>
-            <input type="submit" class="btn btn-success" value="Search" />
-            </input>
-        </form>
-    </div>
-    <div id="sorting-container" style="display: none;">
-        <div class="dropdown">
-            <button class="dropbtn btn btn-secondary">Sorting: <span id="sorting-criteria">Ascending</span> <i class="arrow down"></i></button>
-            <div class="dropdown-content">
-                <span class="sorting-option">Ascending</span>
-                <span class="sorting-option">Descending</span>
             </div>
         </div>
-    </div>
-    <div id="current-search-results">
-        <h3>Search all</h3>
-        <h4 id="results-found"><?php echo $resultsFound; ?> results</h4>
-    </div>
-    <div id="container-table">
-        <h1 style="margin-bottom: 1rem;">Students</h1>
-        <div class="content-wrapper">
-            <table class="table">
-                <thead class="thead-dark">
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Student's ID</th>
-                        <th scope="col">Group Number</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php $count = 1;
-                    foreach ($data as $value) : ?>
+        <div>
+            <h4 id="current-search-results">Search all</h4>
+            <h3><span id="results-found"></span> results</h3>
+            <h5 id="pages-number"></h5>
+        </div>
+        <div id="container-table">
+            <h1 style="margin-bottom: 1rem;">Students</h1>
+            <div class="content-wrapper">
+                <table class="table">
+                    <thead class="thead-dark">
                         <tr>
-                            <th scope="row"><?php echo $count; ?></th>
-                            <td><span class="cont"></span><span class="stdid"><?php echo $value["ID"] ?></span></td>
-                            <td><span class="cont"></span><?php echo $value["group_number"] ?></td>
+                            <th scope="col">#</th>
+                            <th scope="col">Student's ID</th>
+                            <th scope="col">Group Number</th>
                         </tr>
-                        <?php $count++; ?>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody id="table-body">
+
+                    </tbody>
+                </table>
+            </div>
+            <ul class="pagination">
+                <li class="page-item" id="first"><span class="page-link">First</span></li>
+                <li class="page-item" id="previous">
+                    <span class="page-link">Prev</span>
+                </li>
+                <li class="page-item" id="next">
+                    <span class="page-link">Next</span>
+                </li>
+                <li class="page-item" id="last"><span class="page-link">Last</span></li>
+            </ul>
         </div>
     </div>
-
     <script>
         $(document).ready(function() {
-            $(".stdid").click(function() {
+            var pageNumber = 1,
+                totalPages = 1,
+                queryString = "";
+
+            $("tbody").on("click", ".stdid", function() {
                 window.location = 'studentRecord.php?studentid=' + $(this).text().trim();
             });
 
+            function checkPaging() {
+                console.log("total " + totalPages + ' ' + 'current ' + pageNumber);
+
+                if (totalPages === 1) {
+                    document.getElementById("next").setAttribute("class", "page-item disabled");
+                    document.getElementById("previous").setAttribute("class", "page-item disabled");
+                } else if (pageNumber === totalPages && pageNumber > 1) {
+                    document.getElementById("next").setAttribute("class", "page-item disabled");
+                    document.getElementById("previous").className = "page-item";
+                } else if (pageNumber === 1) {
+                    document.getElementById("next").className = "page-item";
+                    document.getElementById("previous").setAttribute("class", "page-item disabled");
+                } else {
+                    document.getElementById("next").className = "page-item";
+                    document.getElementById("previous").className = "page-item";
+                }
+
+            }
             $("#search-content").on("keyup paste", function(event) {
                 let re = /[^0-9]/;
                 if (re.test(event.target.value)) {
@@ -235,28 +257,88 @@ if ($_SESSION["role"] == "tutor") {
 
             $("#search-form").on("submit", function(event) {
                 event.preventDefault();
+                var searchedFor = document.getElementById("current-search-results");
                 let searchValue = $("#search-content").val();
                 let searchCriteria = $("#search-criteria").text();
-                let queryString = "";
+
                 if (searchCriteria === "Grade") {
                     let gradeCriteria = $("#grade-criteria").text();
                     let sortingCriteria = $("#sorting-criteria").text();
+                    searchedFor.innerHTML = `Search for grades ${gradeCriteria} ${searchValue} in ${sortingCriteria}`;
                     queryString = `?grade=${searchValue}&filter=${gradeCriteria.toLowerCase()}&sort=${sortingCriteria.toLowerCase()}`;
                 } else {
                     queryString = `?studentId=${searchValue}`;
+                    searchedFor.innerHTML = `Search matching students ID starting with "${searchValue}"`;
                 }
+                searchRecords();
+            });
+
+            $("#next span").on("click", function() {
+                ++pageNumber;
+                searchRecords();
+            });
+            $("#previous span").on("click", function() {
+                --pageNumber;
+                searchRecords();
+            });
+            $("#first span").on("click", function() {
+                pageNumber = 1;
+                searchRecords();
+            });
+            $("#last span").on("click", function() {
+                pageNumber = totalPages;
+                searchRecords();
+            });
+
+            function searchRecords() {
                 $.ajax({
                     url: 'searchRequests.php' + queryString,
                     data: {
-                        pageNumber: 1
+                        pageNo: pageNumber
                     },
                     type: 'GET',
                     dataType: 'JSON',
                     success: function(output) {
                         $("#results-found").html(output.resultsFound);
+                        totalPages = parseInt(output["pages"]);
+                        $("#pages-number").text("Pages " + totalPages);
+                        pageNumber = parseInt(output["currentPage"]);
+                        $("#table-body").empty();
+                        let tableBody = document.getElementById("table-body");
+                        output["queryResults"].forEach((el, i) => {
+                            let row = document.createElement("TR");
+                            let th = document.createElement("TH");
+                            let td1 = document.createElement("TD"),
+                                td2 = document.createElement("TD");
+                            th.setAttribute("scope", row);
+                            let span1 = document.createElement("SPAN"),
+                                span2 = document.createElement("SPAN");
+                            span1.setAttribute("class", "cont");
+                            span2.setAttribute("class", "stdid");
+                            td1.appendChild(span1);
+                            span2.innerText = el["ID"];
+                            td1.appendChild(span2);
+                            td2.innerHTML = `<span class="cont"></span> ${el["group_number"]}`;
+                            th.innerHTML = i + 1;
+                            row.appendChild(th);
+                            row.appendChild(td1);
+                            row.appendChild(td2);
+                            tableBody.appendChild(row);
+                        });
+                        checkPaging();
+                    },
+                    error: function(xhr, ajaxOptions, thrownError) {
+                        $("#top-alert").css("display", "block");
+                        $("#error-message").text("Server responded with an error");
+                        setTimeout(function() {
+                            $("#top-alert").css("display", "none");
+                        }, 5000);
+
                     }
-                })
-            })
+                });
+
+            }
+            document.body.onload = searchRecords();
         });
     </script>
 </body>

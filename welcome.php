@@ -1,37 +1,14 @@
 <?php
 session_start();
+
+include "checks/databaseConnection.php";
+
+include "checks/loggedIn.php";
+include "checks/tutorLogged.php";
+include "functionality/fetchImage.php";
 $data = array();
-require "classes/oldConnect.php";
-require "fetchImage.php";
 $group_number = $image_err = $image_success = $record_updated = "";
-if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
-    header("location: login.php");
-    exit;
-}
-if ($_SESSION["role"] == "tutor") {
-    header("location: welcomeTutor.php");
-    exit;
-}
-// if (!isset($_SESSION["email"])) {
-//     $sql = "SELECT email, role FROM users WHERE ID = ?";
-//     if ($stmt = $mysqli->prepare($sql)) {
-//         $stmt->bind_param("s", $param_ID);
 
-//         $param_ID = $_SESSION["ID"];
-//         if ($stmt->execute()) {
-//             $result = $stmt->get_result();
-
-//             if ($result->num_rows == 1) {
-//                 $first_row = $result->fetch_assoc();
-//                 $_SESSION["email"] = $first_row['email'];
-//                 $_SESSION["role"] = $first_row['role'];
-
-//                 $stmt->free_result();
-//             }
-//             $stmt->close();
-//         }
-//     }
-// }
 if ($_SESSION["role"] == "student") {
     $sql = "SELECT group_number FROM students WHERE ID = ?";
     if ($stmt = $mysqli->prepare($sql)) {
@@ -117,12 +94,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sql = "UPDATE assessments SET grade = ?, justification = ?, finalized = 1 WHERE grader_id = ? AND graded_id = ?";
     } else if (isset($_POST['btnSave'])) {
         $sql = "UPDATE assessments SET grade = ?, justification = ? WHERE grader_id = ? AND graded_id = ?";
+    } else if (isset($_POST['btnDelete'])) {
+        $sql = "UPDATE assessments SET grade = '', justification = '', image_id = NULL WHERE grader_id = ? AND graded_id = ?";
     }
     if ($stmt = $mysqli->prepare($sql)) {
-        $stmt->bind_param("dsss", $param_grade, $param_justification, $param_grader_id, $param_graded_id);
-
-        $param_grade = $_POST["grade"];
-        $param_justification = $_POST["justification"];
+        
+        if (!isset($_POST['btnDelete'])) {
+            $stmt->bind_param("dsss", $param_grade, $param_justification, $param_grader_id, $param_graded_id);
+            $param_grade = $_POST["grade"];
+            $param_justification = $_POST["justification"];
+        } else {
+            $stmt->bind_param("ss", $param_grader_id, $param_graded_id);
+        }
+        
         $param_grader_id = $_SESSION["ID"];
         $param_graded_id = $_POST["graded_id"];
         if ($stmt->execute()) {
@@ -156,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .img-container {
             width: 5rem;
             height: auto;
+            min-width: 3rem;
         }
 
         form.col-sm-6 {
@@ -169,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <?php include("navbar.php") ?>
+    <?php include("pageContent/navbar.php") ?>
     <?php if (!empty($image_err)) : ?>
         <div class="alert alert-danger" role="alert">
             <h4 class="alert-heading">Error uploading image!</h4>
@@ -198,16 +183,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label for="grade">Grade</label>
                         <select class="form-control" id="grade" name="grade">
-                            <option <?php if ($value["grade"] == 1) echo 'selected'; ?>>1</option>
-                            <option <?php if ($value["grade"] == 2) echo 'selected'; ?>>2</option>
-                            <option <?php if ($value["grade"] == 3) echo 'selected'; ?>>3</option>
-                            <option <?php if ($value["grade"] == 4) echo 'selected'; ?>>4</option>
-                            <option <?php if ($value["grade"] == 5) echo 'selected'; ?>>5</option>
-                            <option <?php if ($value["grade"] == 6) echo 'selected'; ?>>6</option>
-                            <option <?php if ($value["grade"] == 7) echo 'selected'; ?>>7</option>
-                            <option <?php if ($value["grade"] == 8) echo 'selected'; ?>>8</option>
-                            <option <?php if ($value["grade"] == 9) echo 'selected'; ?>>9</option>
-                            <option <?php if ($value["grade"] == 10) echo 'selected'; ?>>10</option>
+                            <?php if ($value["grade"] == 0) echo "<option value='0' selected>Please select</option>";
+                                    else echo "<option value='0'>Please select</option>";
+                                    for ($x = 1; $x < 11; $x++) {
+                                        if ($value["grade"] == $x) {
+                                            echo "<option value='$x' selected>$x</option>";
+                                        } else {
+                                            echo "<option value='$x'>$x</option>";
+                                        }
+                                    } ?>
                         </select>
                     </div>
 
@@ -234,9 +218,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php if ($value['finalized'] == 1) : ?>
                         <p class="text-danger">You already submitted the final grade. No more changes can be done.</p>
                     <?php else : ?>
-                        <p>Click finish to finalize the grade.</p>
-                        <input type="submit" class="btn btn-primary btn-lg" name="btnFinish" value="Finish" />
-                        <input type="submit" class="btn btn-success btn-lg" name="btnSave" value="Save" />
+                        <div style="position:relative;">
+                            <p>Click finish to finalize the grade.</p>
+                            <input type="submit" class="btn btn-primary btn-lg" name="btnFinish" value="Finish" />
+                            <input type="submit" class="btn btn-success btn-lg" name="btnSave" value="Save" />
+                            <input type="submit" class="btn btn-danger btn-lg" style="position: absolute; right:.3rem;" name="btnDelete" value="Delete" />
+                        </div>
                     <?php endif; ?>
                 </form>
         <?php endforeach;

@@ -24,7 +24,7 @@ exit;
 </head>
 <body>
 
-<?php include("navbar.php") ?>
+<?php include("pageContent/navbar.php") ?>
 <h1>You have been logged out.</h1>
 
 <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
