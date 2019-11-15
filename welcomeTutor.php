@@ -298,7 +298,7 @@ include "checks/studentLogged.php";
                     },
                     type: 'GET',
                     dataType: 'JSON',
-                    success: function(output) {
+                    success: function(output, status, xhr) {
                         $("#results-found").html(output.resultsFound);
                         totalPages = parseInt(output["pages"]);
                         $("#pages-number").text("Pages " + totalPages);
@@ -327,9 +327,9 @@ include "checks/studentLogged.php";
                         });
                         checkPaging();
                     },
-                    error: function(xhr, ajaxOptions, thrownError) {
+                    error: function(xhr, status, error) {
                         $("#top-alert").css("display", "block");
-                        $("#error-message").text("Server responded with an error");
+                        $("#error-message").text(xhr.responseJSON.message);
                         setTimeout(function() {
                             $("#top-alert").css("display", "none");
                         }, 5000);

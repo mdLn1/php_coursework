@@ -1,12 +1,28 @@
 <?php
 include "checks/databaseConnection.php";
+$response = array();
+if (isset($_SERVER['HTTP_REFERER'])) {
+    $address = 'http://' . $_SERVER['SERVER_NAME'];
+    if (strpos($address, $_SERVER['HTTP_REFERER']) !== 0) {
+        header('HTTP/1.1 500 Internal Server Booboo');
+        $response["message"] = 'Invalid Origin header: ' . $_SERVER['HTTP_REFERER'];
+        $response["code"] = 1337;
+        die(json_encode($response));
+    }
+} else {
+    header('HTTP/1.1 500 Internal Server Booboo');
+    $response["message"] = 'No origin header';
+    $response["code"] = 1337;
+    die(json_encode($response));
+}
+
 
 $queries = array();
 $data = [];
 $total_pages = $resultsFound = 0;
 $pageNumber = 1;
 $records_page = 5;
-$response = array();
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SERVER['QUERY_STRING'])) {
     $studentsCount = 'SELECT COUNT(*) FROM students';
     parse_str($_SERVER['QUERY_STRING'], $queries);
@@ -30,9 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SERVER['QUERY_STRING'])) {
         $filter = $queries['filter'];
         $sorting = $queries['sorting'];
         #sending error responses
-header('HTTP/1.1 500 Internal Server Error');
-header('Content-Type: application/json; charset=UTF-8');
-die(json_encode(array('message' => 'ERROR', 'code' => 1337)));
+        header('HTTP/1.1 500 Internal Server Error');
+        header('Content-Type: application/json; charset=UTF-8');
+        die(json_encode(array('message' => 'ERROR', 'code' => 1337)));
     } else {
         $sql = 'SELECT COUNT(*) FROM students';
         $result = $mysqli->query($sql);
@@ -45,12 +61,10 @@ die(json_encode(array('message' => 'ERROR', 'code' => 1337)));
                 $data[] = $row;
             }
         }
-        
     }
     $response["queryResults"] = $data;
-        $response["resultsFound"] = $resultsFound;
-        $response["pages"] = $total_pages;
-        $response["currentPage"] = $pageNumber;
-        echo json_encode($response);
+    $response["resultsFound"] = $resultsFound;
+    $response["pages"] = $total_pages;
+    $response["currentPage"] = $pageNumber;
+    echo json_encode($response);
 }
-?>
