@@ -2,3 +2,4 @@ classes/Connection.php
 classes/oldConnect.php
 oldConnect.php
 checks/databaseConnection.php
+checks/requestOrigin.php

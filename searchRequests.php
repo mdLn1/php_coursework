@@ -1,21 +1,6 @@
 <?php
 include "checks/databaseConnection.php";
 $response = array();
-if (isset($_SERVER['HTTP_REFERER'])) {
-    $address = 'http://' . $_SERVER['SERVER_NAME'];
-    if (strpos($address, $_SERVER['HTTP_REFERER']) !== 0) {
-        header('HTTP/1.1 500 Internal Server Booboo');
-        $response["message"] = 'Invalid Origin header: ' . $_SERVER['HTTP_REFERER'];
-        $response["code"] = 1337;
-        die(json_encode($response));
-    }
-} else {
-    header('HTTP/1.1 500 Internal Server Booboo');
-    $response["message"] = 'No origin header';
-    $response["code"] = 1337;
-    die(json_encode($response));
-}
-
 
 $queries = array();
 $data = [];
@@ -68,3 +53,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SERVER['QUERY_STRING'])) {
     $response["currentPage"] = $pageNumber;
     echo json_encode($response);
 }
+?>
