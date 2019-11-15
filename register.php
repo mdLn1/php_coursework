@@ -3,45 +3,13 @@ session_start();
 
 $ID = $confirm_captcha = $group = $email = $password = $confirm_password = "";
 $ID_err = $confirm_captcha_err = $group_err = $email_err = $password_err = $confirm_password_err = "";
+$registration_error = "";
 $accountCreated = false;
-include "checks/databaseConnection.php";
 require "functionality/createCaptcha.php";
+include "database.php";
 $groups = [];
-
-function findGroupsAvailable($sqliDb)
-{
-    $sql = "SELECT COUNT(ID), group_number
-        FROM students
-        GROUP BY group_number
-        ORDER BY COUNT(ID) ASC";
-    $result = $sqliDb->query($sql);
-    if ($result->num_rows > 0) {
-        // output data of each row
-        while ($row = $result->fetch_assoc()) {
-            if ($row['COUNT(ID)'] == 3) {
-                $data[] = $row;
-            }
-        }
-        return $data;
-    }
-    return [];
-}
-function findStudentsFromGroup($sqliDb, $number, $id)
-{
-    $sql = "SELECT ID FROM students WHERE group_number = $number";
-    $result = $sqliDb->query($sql);
-    // output data of each row
-    if ($result->num_rows > 1) {
-        while ($row = $result->fetch_assoc()) {
-            if ($row['ID'] != $id) {
-                $data[] = $row;
-            }
-        }
-        return $data;
-    }
-    return [];
-}
-$groups = findGroupsAvailable($mysqli);
+$db = new Database();
+$groups = $db->findGroupsAvailable();
 $availableGroups = [];
 if (!empty($groups)) {
     for ($i = 1; $i < 11; $i++) {
@@ -53,54 +21,32 @@ if (!empty($groups)) {
 } else {
     $availableGroups = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 }
-// Processing form data when form is submitted
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Validate username
+
     $correctCaptcha = $_SESSION["captcha"];
+
     if (empty(trim($_POST["ID"]))) {
         $ID_err = "Please enter an ID number.";
     } else {
-        // Prepare a select statement
-        $sql = "SELECT ID FROM users WHERE ID = ?";
-
-        if ($stmt = $mysqli->prepare($sql)) {
-            // Bind variables to the prepared statement as parameters
-            $stmt->bind_param("s", $param_ID);
-
-            // Set parameters
-            $param_ID = trim($_POST["ID"]);
-
-            // Attempt to execute the prepared statement
-            if ($stmt->execute()) {
-                // store result
-                $stmt->store_result();
-
-                if ($stmt->num_rows == 1) {
-                    $ID_err = "This ID is already used by another student.";
-                } else {
-                    $ID = trim($_POST["ID"]);
-                }
-            } else {
-                echo "Oops! Something went wrong. Please try again later.";
-            }
+        $ID = trim($_POST["ID"]);
+        if ($db->getUserDetails(trim($ID))) {
+            $ID_err = "This ID is already used by another student.";
         }
-
-        // Close statement
-        $stmt->close();
     }
 
+    if (empty(trim($_POST["email"]))) {
+        $email_err = "Please enter an email.";
+    } else {
+        $email = trim($_POST["email"]);
+    }
 
-    // Validate email
-    include "checks/checkEmail.php";
-
-    // Validate email
     if (empty(trim($_POST["group"]))) {
         $group_err = "Please enter an group.";
     } else {
         $group = trim($_POST["group"]);
     }
 
-    // Validate password
     if (empty(trim($_POST["password"]))) {
         $password_err = "Please enter a password.";
     } elseif (strlen(trim($_POST["password"])) < 6) {
@@ -109,7 +55,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $password = trim($_POST["password"]);
     }
 
-    // Validate confirm password
     if (empty(trim($_POST["confirm_password"]))) {
         $confirm_password_err = "Please confirm password.";
     } else {
@@ -131,56 +76,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // Check input errors before inserting in database
-    if (empty($ID_err) && empty($email_err) && empty($group_err) && empty($confirm_captcha_err) && empty($password_err) && empty($confirm_password_err)) {
-
-        // Prepare an insert statement
-        $sql = "INSERT INTO users (ID, email, pass) VALUES (?, ?, ?)";
-
-        if ($stmt = $mysqli->prepare($sql)) {
-            // Bind variables to the prepared statement as parameters
-            $stmt->bind_param("sss", $param_ID, $param_email, $param_pass);
-
-            // Set parameters
-            $param_ID = $ID;
-            $param_email = $email;
-            $param_pass = password_hash($password, PASSWORD_DEFAULT); // Creates a password hash
-
-            // Attempt to execute the prepared statement
-            if ($stmt->execute()) {
-                $sql = "INSERT INTO students (ID, group_number) VALUES (?, ?)";
-                if ($stmt = $mysqli->prepare($sql)) {
-                    $stmt->bind_param("ss", $param_ID, $param_group);
-                    $param_ID = $ID;
-                    $param_group = $group;
-                    if ($stmt->execute()) {
-                        $accountCreated = true;
-                        $others = findStudentsFromGroup($mysqli, $group, $ID);
-                        if (count($others) > 0) {
-                            foreach ($others as $student) {
-                                $colleagueID = $student["ID"];
-                                $sql = "INSERT INTO assessments (grader_id, graded_id) VALUES ($colleagueID, $ID)";
-                                $mysqli->query($sql);
-                                $sql = "INSERT INTO assessments (grader_id, graded_id) VALUES ($ID, $colleagueID)";
-                                $mysqli->query($sql);
-                            }
-                        }
-                        $ID = $confirm_captcha = $group = $email = $password = $confirm_password = "";
-                        $ID_err = $confirm_captcha_err = $group_err = $email_err = $password_err = $confirm_password_err = "";
-                    }
-                }
-                // Redirect to login pages
-            } else {
-                echo "Something went wrong. Please try again later.";
-            }
+    if (
+        empty($ID_err) && empty($email_err) && empty($group_err)
+        && empty($confirm_captcha_err) && empty($password_err) && empty($confirm_password_err)
+    ) {
+        if ($db->addStudent($ID, $email, $password, $group)) {
+            $accountCreated = true;
+            $ID = $confirm_captcha = $group = $email = $password = $confirm_password = "";
+            $ID_err = $confirm_captcha_err = $group_err = $email_err = $password_err = $confirm_password_err = "";
+        } else {
+            $registration_error = "An error occurred during the account creation process, please try again!";
         }
-
-        // Close statement
-        $stmt->close();
     }
-
-    // Close connection
-    $mysqli->close();
 }
 ?>
 <!DOCTYPE html>
@@ -212,16 +119,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <?php if ($accountCreated) : ?>
         <div class="alert alert-success" role="alert">
             <h4 class="alert-heading">Account Successfully created!</h4>
-            <p>Please head in to the <a class="navbar-brand" href="login.php">Login</a> page in order to login.</p>
+            <p>Please head in to the <a class="navbar-brand" href="login.php">Login</a>page in order to login.</p>
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($registration_error)) : ?>
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Error while creating account</h4>
+            <p><?php echo $registration_error; ?></p>
         </div>
     <?php endif; ?>
     <div class="form-container">
         <h2>Register</h2>
         <p>Please fill this form to create an account.</p>
         <form method="post" id="signupForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-            <div class="form-group  <?php echo (!empty($ID_err)) ? 'has-error' : ''; ?>">
-                <label for="id1">ID</label>
-                <input type="text" class="form-control" name="ID" id="id1" aria-describedby="IDHelp" placeholder="Enter ID" value="<?php echo $ID ?>">
+            <div class="form-group <?php echo (!empty($ID_err)) ? 'has-error' : ''; ?>">
+                <label for="ID">ID</label>
+                <input type="text" class="form-control" name="ID" id="ID" aria-describedby="IDHelp" placeholder="Enter ID" value="<?php echo $ID; ?>">
                 <span class="error-input"><?php echo $ID_err; ?></span>
             </div>
 

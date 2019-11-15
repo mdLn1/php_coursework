@@ -1,5 +1,8 @@
 <?php
+session_start();
 include "checks/databaseConnection.php";
+include "checks/loggedIn.php";
+include "checks/studentLogged.php";
 $response = array();
 
 $queries = array();

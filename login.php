@@ -1,8 +1,7 @@
 <?php
-// Initialize the session
 session_start();
-include "checks/databaseConnection.php";
 include "functionality/createCaptcha.php";
+include "database.php";
 
 // Define variables and initialize with empty values
 $ID = $password = $confirm_captcha = "";
@@ -10,6 +9,7 @@ $ID_err = $password_err = $confirm_captcha_err = "";
 
 // Processing form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  $db = new Database();
   $correctCaptcha = $_SESSION["captcha"];
   // Check if ID is empty
   if (empty(trim($_POST["ID"]))) {
@@ -40,60 +40,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   // Validate credentials
   if (empty($ID_err) && empty($password_err) && empty($confirm_captcha_err)) {
     // Prepare a select statement
-    $sql = "SELECT ID, pass, role FROM users WHERE ID = ?";
+    if ($result = $db->getUserDetails($ID)) {
 
-    if ($stmt = $mysqli->prepare($sql)) {
-      // Bind variables to the prepared statement as parameters
-      $stmt->bind_param("s", $param_ID);
+      if (password_verify($password, $result["pass"])) {
+        // Password is correct, so start a new session
+        session_start();
+        // Store data in session variables
+        $_SESSION["loggedin"] = true;
+        $_SESSION["ID"] = $ID;
+        $_SESSION["role"] = $result["role"];
 
-      // Set parameters
-      $param_ID = $ID;
-
-      // Attempt to execute the prepared statement
-      if ($stmt->execute()) {
-        // Store result
-        $stmt->store_result();
-
-        // Check if ID exists, if yes then verify password
-        if ($stmt->num_rows == 1) {
-          // Bind result variables
-          $stmt->bind_result($ID, $hashed_password, $role);
-          if ($stmt->fetch()) {
-            if (password_verify($password, $hashed_password)) {
-              // Password is correct, so start a new session
-              session_start();
-
-              // Store data in session variables
-              $_SESSION["loggedin"] = true;
-              $_SESSION["ID"] = $ID;
-              $_SESSION["role"] = $role;
-
-              // Redirect user to welcome page
-              if ($role == "student") {
-                header("location: welcome.php");
-              } else {
-                header("location: welcomeTutor.php");
-              }
-            } else {
-              // Display an error message if password is not valid
-              $password_err = "The password you entered was not valid.";
-            }
-          }
+        // Redirect user to welcome page
+        if ($result["role"] == "student") {
+          header("location: welcome.php");
         } else {
-          // Display an error message if ID doesn't exist
-          $ID_err = "No account found with that ID.";
+          header("location: welcomeTutor.php");
         }
       } else {
-        echo "Oops! Something went wrong. Please try again later.";
+        // Display an error message if password is not valid
+        $password_err = "The password you entered was not valid.";
       }
     }
-
-    // Close statement
-    $stmt->close();
+  } else {
+    echo "Oops! Something went wrong. Please try again later.";
   }
-
-  // Close connection
-  $mysqli->close();
 }
 ?>
 <!DOCTYPE html>
@@ -122,7 +92,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 
 <body>
-<?php include("pageContent/navbar.php") ?>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+  <?php include("pageContent/navbar.php") ?>
 
   <div class="form-container">
     <h2>Login</h2>
@@ -151,12 +123,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <p>Don't have an account yet? <a href="register.php">Sign up here</a></p>
   </div>
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-  <script src="js/tether.min.js"></script>
-  <script src="js/bootstrap.min.js"></script>
-  <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-  <script src="js/ie10-viewport-bug-workaround.js"></script>
-  <script src="js/Bootstrap_tutorial.js"></script>
+
   <script>
     $(document).ready(function() {
       $("#captcha-button").on('click', function(event) {

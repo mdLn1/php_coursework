@@ -203,7 +203,6 @@ include "checks/studentLogged.php";
             });
 
             function checkPaging() {
-                console.log("total " + totalPages + ' ' + 'current ' + pageNumber);
 
                 if (totalPages === 1) {
                     document.getElementById("next").setAttribute("class", "page-item disabled");

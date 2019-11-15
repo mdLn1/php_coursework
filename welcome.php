@@ -1,48 +1,41 @@
 <?php
 session_start();
 
-include "checks/databaseConnection.php";
-
 include "checks/loggedIn.php";
 include "checks/tutorLogged.php";
 include "functionality/fetchImage.php";
 $data = array();
 $group_number = $image_err = $image_success = $record_updated = "";
+include "database.php";
 
-if ($_SESSION["role"] == "student") {
-    $sql = "SELECT group_number FROM students WHERE ID = ?";
-    if ($stmt = $mysqli->prepare($sql)) {
-        $stmt->bind_param("s", $param_ID);
-        $param_ID = $_SESSION["ID"];
-        if ($stmt->execute()) {
-            // Store result
-            $stmt->store_result();
-            if ($stmt->num_rows > 0) {
-                $stmt->bind_result($group_number);
-                $stmt->fetch();
-            }
-            $stmt->close();
-        }
-    }
+$db = new Database();
+
+if ($result = $db->dontWorryQuery("SELECT group_number FROM students WHERE ID = " . $_SESSION["ID"], $moreThanOne = false)) {
+    $group_number = $result["group_number"];
 }
-if (!empty($group_number)) {
-    $sql = "SELECT * FROM assessments WHERE grader_id = ?";
-    if ($stmt = $mysqli->prepare($sql)) {
-        $stmt->bind_param("s", $param_grader_id);
-        $param_grader_id = $_SESSION["ID"];
-        if ($stmt->execute()) {
-            $result = $stmt->get_result();
-            /* Get the number of rows */
-            $num_of_rows = $result->num_rows;
-            while ($row = $result->fetch_assoc()) {
-                $data[] = $row;
-            }
-            $stmt->free_result();
-        }
-        $stmt->close();
-    }
+
+if ($result = $db->dontWorryQuery("SELECT * FROM assessments WHERE grader_id = " . $_SESSION["ID"])) {
+    $data = $result;
 }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $dbConnect = $db->getDbConnection();
+    $justification = $graded_id = $grader_id = "";
+    $grade = 0;
+
+    if (empty(trim($_POST["justification"]))) {
+        $justification = trim($_POST["justification"]);
+    }
+    if (empty(trim($_POST["graded_id"]))) {
+        $graded_id = trim($_POST["graded_id"]);
+    }
+    if (empty(trim($_POST["grader_id"]))) {
+        $grader_id = trim($_POST["grader_id"]);
+    }
+    if (empty(trim($_POST["grade"]))) {
+        $grade= (int)trim($_POST["grade"]);
+    }
+
     if (!empty($_FILES["fileToUpload"]["size"])) {
         if (!preg_match('/gif|png|x-png|jpeg/', $_FILES['fileToUpload']['type'])) {
             $image_err = '<p>Only browser compatible images allowed</p>';
@@ -58,30 +51,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Commit image to the database
             $image_name = $_FILES['fileToUpload']['name'];
             $image_type = $_FILES['fileToUpload']['type'];
-            $image = mysqli_escape_string($mysqli, $image);
             if (!(isset($_POST["image-exists"]))) {
                 $query = 'INSERT INTO images (img_name,img_type,img) VALUES ("' . $image_name . '","' . $image_type  . '","' . $image . '")';
             } else {
                 $pic_id = $_POST["image-exists"];
                 $query = 'UPDATE images SET img_name = "' . $image_name . '", img_type = "' . $image_type  . '", img = "' . $image . '" WHERE pic_id = "' . $pic_id . '"';
             }
-            if (!($mysqli->query($query))) {
+            $result = [];
+            if (!($result = $dbConnect->query($query))) {
                 $image_err = '<p>Error writing image to database</p>';
             } else {
                 if (!(isset($_POST["image-exists"]))) {
-                    $image_id = $mysqli->insert_id;
+                    $image_id = $result->lastInsertId();
                     $query = "UPDATE assessments SET image_id = ? WHERE grader_id = ? AND graded_id = ?";
-                    if ($stmt = $mysqli->prepare($query)) {
-                        $param_image_id = $image_id;
-                        $param_grader_id = $_SESSION["ID"];
-                        $param_graded_id = $_POST["graded_id"];
-                        $stmt->bind_param("dss", $param_image_id, $param_grader_id, $param_graded_id);
-                        if ($stmt->execute()) {
+                    if ($stmt = $dbConnect->prepare($query)) {
+                        if ($stmt->execute([$image_id, $_SESSION["ID"], $graded_id])) {
                             $image_success = '<p>Record updated.</p>';
                         } else {
                             $image_err = '<p>Error linking image to user</p>';
                         }
-                        $stmt->close();
                     }
                 } else {
                     $image_success .= '<p>Image successfully copied to database</p>';
@@ -97,22 +85,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else if (isset($_POST['btnDelete'])) {
         $sql = "UPDATE assessments SET grade = '', justification = '', image_id = NULL WHERE grader_id = ? AND graded_id = ?";
     }
-    if ($stmt = $mysqli->prepare($sql)) {
-        
+    if ($stmt = $dbConnect->prepare($sql)) {
+
         if (!isset($_POST['btnDelete'])) {
-            $stmt->bind_param("dsss", $param_grade, $param_justification, $param_grader_id, $param_graded_id);
-            $param_grade = $_POST["grade"];
-            $param_justification = $_POST["justification"];
+            if($stmt->execute([0, "", $grader_id, $graded_id])){
+                $record_updated = "<p>Information has been deleted for $param_graded_id.</p>";
+            }
         } else {
-            $stmt->bind_param("ss", $param_grader_id, $param_graded_id);
+            if($stmt->execute([$grader_id, $graded_id])){
+                $record_updated = "<p>Information has been successfully updated for $param_graded_id.</p>";
+            }
         }
-        
-        $param_grader_id = $_SESSION["ID"];
-        $param_graded_id = $_POST["graded_id"];
-        if ($stmt->execute()) {
-            $record_updated = "<p>Information has been successfully updated for $param_graded_id.</p>";
-        }
-        $stmt->close();
     }
 }
 ?>
