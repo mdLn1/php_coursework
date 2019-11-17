@@ -1,53 +1,81 @@
 <?php
 session_start();
-include "checks/databaseConnection.php";
+// include "checks/databaseConnection.php";
 include "checks/loggedIn.php";
 include "checks/studentLogged.php";
+include "functionality/errorResponse.php";
+include "database.php";
 $response = array();
-
 $queries = array();
 $data = [];
-$total_pages = $resultsFound = 0;
+$total_pages = $resultsFound = $offset = 0;
 $pageNumber = 1;
 $records_page = 5;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SERVER['QUERY_STRING'])) {
-    $studentsCount = 'SELECT COUNT(*) FROM students';
+    $db = new Database();
+    $sqlCount = $sqlSearch = "";
     parse_str($_SERVER['QUERY_STRING'], $queries);
+    $pageNumber = 1;
+    if (!isset($_GET["pageNo"])) {
+        responseError("Page number must be a number greater than 0");
+    }
     $pageNumber = $_GET["pageNo"];
+    if (preg_match('/[^0-9]/', $pageNumber)) {
+        responseError("Page number must be a number greater than 0");
+    }
+    $pageNumber = (int)$pageNumber;
     $offset = ($pageNumber - 1) * $records_page;
     if (isset($queries['studentId'])) {
         $studentid = $queries['studentId'];
-        $sql = 'SELECT COUNT(*) FROM students WHERE ID REGEXP "^' . $studentid . '" ORDER BY ID';
-        $result = $mysqli->query($sql);
-        $resultsFound = $result->fetch_array()[0];
-        if ($resultsFound > 0) {
-            $total_pages = ceil($resultsFound / $records_page);
-            $sql = 'SELECT * FROM students WHERE ID REGEXP "^' . $studentid . '" ORDER BY ID LIMIT ' . $offset . ',' . $records_page . '';
-            $res_data = $mysqli->query($sql);
-            while ($row = $res_data->fetch_array()) {
-                $data[] = $row;
-            }
+        if (preg_match('/[^0-9]/', $studentid)) {
+            responseError("Student id must be formed of digits only.", 400, "Bad Request");
         }
+        setCookie("LastSearch", $studentid);
+        $sqlCount = 'SELECT COUNT(*) FROM students WHERE ID REGEXP "' . $studentid . '" ORDER BY ID';
+        $sqlSearch = 'SELECT * FROM students WHERE ID REGEXP "' . $studentid . '" ORDER BY ID LIMIT ' . $offset . ',' . $records_page . '';
     } else if (isset($queries['grade'])) {
         $grade = $queries['grade'];
-        $filter = $queries['filter'];
-        $sorting = $queries['sorting'];
-        #sending error responses
-        header('HTTP/1.1 500 Internal Server Error');
-        header('Content-Type: application/json; charset=UTF-8');
-        die(json_encode(array('message' => 'ERROR', 'code' => 1337)));
-    } else {
-        $sql = 'SELECT COUNT(*) FROM students';
-        $result = $mysqli->query($sql);
-        $resultsFound = $result->fetch_array()[0];
-        if ($resultsFound > 0) {
-            $total_pages = ceil($resultsFound / $records_page);
-            $sql = 'SELECT * FROM students ORDER BY group_number ASC LIMIT ' . $offset . ',' . $records_page . '';
-            $res_data = $mysqli->query($sql);
-            while ($row = $res_data->fetch_array()) {
-                $data[] = $row;
+        if (preg_match('/[^1-9]/', $grade)) {
+            responseError("Grade must be a digit between 1 and 9 inclusive.", 400, "Bad Request");
+        }
+        if (!((int) $grade > 0 && (int) $grade < 10)) {
+            responseError("Grade must be a digit between 1 and 9 inclusive.", 400, "Bad Request");
+        }
+        $filter = "";
+        $sorting = "";
+        if (isset($queries['filter']) && isset($queries['sort'])) {
+            $filter = trim($queries['filter']);
+            $sorting = trim($queries['sort']);
+            if ($filter !== "over") {
+                $filter = "<=";
+            } else {
+                $filter = ">=";
             }
+            if ($sorting !== "ascending") {
+                $sorting = "DESC";
+            } else {
+                $sorting = "ASC";
+            }
+        } else {
+            responseError("Filter and sorting must be set when searching for a grade.", 400, "Bad Request");
+        }
+        setCookie("LastSearch", $grade);
+        $sqlCount = "SELECT COUNT(*) FROM students WHERE finalized_grade IS NOT NULL and finalized_grade $filter $grade";
+        $sqlSearch = "SELECT * FROM students WHERE finalized_grade IS NOT NULL and finalized_grade $filter $grade ORDER BY finalized_grade $sorting LIMIT $offset, $records_page";
+    } else {
+        $sqlCount = 'SELECT COUNT(*) FROM students';
+        $sqlSearch = 'SELECT * FROM students ORDER BY group_number ASC LIMIT ' . $offset . ',' . $records_page . '';
+    }
+    $resultsFound = $db->countStudentRecordsOnCriteria($sqlCount);
+    if ($resultsFound > 0) {
+        $total_pages = ceil($resultsFound / $records_page);
+        if ($pageNumber > $total_pages) {
+            $pageNumber = $total_pages;
+            $offset = ($pageNumber - 1) * $records_page;
+        }
+        if ($result = $db->dontWorryQuery($sqlSearch)) {
+            $data = $result;
         }
     }
     $response["queryResults"] = $data;
@@ -55,5 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SERVER['QUERY_STRING'])) {
     $response["pages"] = $total_pages;
     $response["currentPage"] = $pageNumber;
     echo json_encode($response);
+} else {
+    responseError("Cannot process your request.");
 }
 ?>

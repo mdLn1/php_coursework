@@ -1,6 +1,7 @@
 <?php
 session_start();
 include "functionality/createCaptcha.php";
+include "checks/isLogged.php";
 include "database.php";
 
 // Define variables and initialize with empty values
@@ -8,7 +9,7 @@ $ID = $password = $confirm_captcha = "";
 $ID_err = $password_err = $confirm_captcha_err = "";
 
 // Processing form data when form is submitted
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["login"])) {
   $db = new Database();
   $correctCaptcha = $_SESSION["captcha"];
   // Check if ID is empty
@@ -47,6 +48,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         session_start();
         // Store data in session variables
         $_SESSION["loggedin"] = true;
+        $id = $_COOKIE['UserId'] .  $ID;
+        setcookie('UserId', $id);
         $_SESSION["ID"] = $ID;
         $_SESSION["role"] = $result["role"];
 
@@ -71,59 +74,48 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 
 <head>
+  <title>Home</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="description" content="">
   <meta name="author" content="">
-  <title>Home</title>
   <link rel="stylesheet" href="css/bootstrap.min.css">
-  <link rel="stylesheet" href="css/custom.css">
-  <style>
-    img#captcha-image {
-      margin-bottom: 1rem;
-    }
-
-    #captcha-button {
-      padding: 1rem;
-      border-radius: .5rem;
-      background-color: #5a6268;
-      color: white;
-    }
-  </style>
+  <link href="custom.css" rel="stylesheet">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="bootstrap.min.js"></script>
 </head>
 
 <body>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
   <?php include("pageContent/navbar.php") ?>
-
-  <div class="form-container">
-    <h2>Login</h2>
-    <p>Please fill this form to login.</p>
-    <form method="post" id="loginForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-      <div class="form-group  <?php echo (!empty($ID_err)) ? 'has-error' : ''; ?>">
-        <label for="id1">ID</label>
-        <input type="text" class="form-control" name="ID" id="id1" aria-describedby="IDHelp" placeholder="Enter ID" value="<?php echo $ID ?>">
-        <span class="error-input"><?php echo $ID_err; ?></span>
-      </div>
-      <div class="form-group <?php echo (!empty($password_err)) ? 'has-error' : ''; ?>">
-        <label for="exampleInputPassword1">Password</label>
-        <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" value="<?php echo $password ?>">
-        <span class="error-input"><?php echo $password_err; ?></span>
-      </div>
-      <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
-        <img id="captcha-image" src='data:image/jpeg;base64,<?php $captchaImg = makeImgCaptcha();
-                                                            echo $captchaImg; ?>' alt="captcha image" />
-        <input type="button" id="captcha-button" value="Regenerate" />
-        <?php echo $_SESSION["captcha"]; ?>
-        <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
-        <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
-      </div>
-      <button type="submit" class="btn btn-primary">Login</button>
-    </form>
-    <p>Don't have an account yet? <a href="register.php">Sign up here</a></p>
+  <div style="padding:1rem;">
+    <div class="form-container">
+      <h2>Login</h2>
+      <p>Please fill this form to login.</p>
+      <form method="post" id="loginForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+        <div class="form-group  <?php echo (!empty($ID_err)) ? 'has-error' : ''; ?>">
+          <label for="id1">ID</label>
+          <input type="text" class="form-control" name="ID" id="id1" aria-describedby="IDHelp" placeholder="Enter ID" value="<?php echo $ID ?>">
+          <span class="error-input"><?php echo $ID_err; ?></span>
+        </div>
+        <div class="form-group <?php echo (!empty($password_err)) ? 'has-error' : ''; ?>">
+          <label for="exampleInputPassword1">Password</label>
+          <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" value="<?php echo $password ?>">
+          <span class="error-input"><?php echo $password_err; ?></span>
+        </div>
+        <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
+          <img id="captcha-image" src='data:image/jpeg;base64,<?php $captchaImg = makeImgCaptcha();
+                                                              echo $captchaImg; ?>' alt="captcha image" />
+          <input type="button" id="captcha-button" value="Regenerate" />
+          <?php echo $_SESSION["captcha"]; ?>
+          <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
+          <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
+        </div>
+        <button type="submit" name="login" class="btn btn-primary">Login</button>
+      </form>
+      <p>Don't have an account yet? <a href="register.php">Sign up here</a></p>
+    </div>
   </div>
-
-
   <script>
     $(document).ready(function() {
       $("#captcha-button").on('click', function(event) {
@@ -143,6 +135,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       })
     });
   </script>
+  <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.php") ?>
 </body>
 
 </html>

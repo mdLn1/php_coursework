@@ -9,3 +9,15 @@ if ( preg_match('/[^a-zA-Z\-']|^$/',$surname) )
    $strValid .= "  Surname<br />\n";
 if ( !preg_match('/^([\w\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})$/',$email) )
    $strValid .= "  Email<br />\n";
+
+   $("#search-content").focus(function() {
+                $.ajax({
+                    url: 'functionality/getLastSearch.php',
+                    type: 'GET',
+                    dataType: 'JSON',
+                    success: function(result){
+                        if(result.cookie !== "empty"){
+                            alert(result.cookie);
+                        }
+                    }
+            }));

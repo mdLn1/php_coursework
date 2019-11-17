@@ -4,6 +4,8 @@ session_start();
 
 // Unset all of the session variables
 $_SESSION = array();
+setcookie('UserId', '', time() - 3600);
+setcookie('LastSearch', '', time() - 3600);
 
 // Destroy the session.
 session_destroy();
@@ -12,12 +14,14 @@ session_destroy();
 <html>
 
 <head>
+  <title>Logout</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="description" content="">
   <meta name="author" content="">
-  <title>Logout</title>
   <link rel="stylesheet" href="css/bootstrap.min.css">
-  <link rel="stylesheet" href="css/custom.css">
+  <link href="custom.css" rel="stylesheet">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="bootstrap.min.js"></script>
 </head>
 
 <body>
@@ -27,13 +31,7 @@ session_destroy();
     <h4 class="alert-heading">You have successfully logged out!</h4>
     <p>Please head in to the <a class="navbar-brand" href="login.php">Login</a>page in order to login again.</p>
   </div>
-
-  <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
-  <script src="js/tether.min.js"></script>
-  <script src="js/bootstrap.min.js"></script>
-  <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-  <script src="js/ie10-viewport-bug-workaround.js"></script>
-  <script src="js/Bootstrap_tutorial.js"></script>
+  <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.php") ?>
 </body>
 
 </html>

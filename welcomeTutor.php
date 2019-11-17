@@ -8,44 +8,19 @@ include "checks/studentLogged.php";
 <html>
 
 <head>
+    <title>Tutor students checks</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>Tutor students checks</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/custom.css">
+    <link href="custom.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="bootstrap.min.js"></script>
     <style>
         .content-wrapper {
             margin: 0 auto;
             max-width: 30em;
             width: 80%;
-        }
-
-        #container-table {
-            text-align: center;
-        }
-
-        tr {
-            font-size: 1.5rem;
-            background-color: #c8cbcf;
-            color: black;
-        }
-
-        tbody tr:hover {
-            background-color: white;
-            color: #007bff;
-        }
-
-        td:hover {
-
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
-        td:hover .cont::before {
-            content: '\00bb';
         }
 
         .dropbtn {
@@ -145,6 +120,7 @@ include "checks/studentLogged.php";
                 <div class="form-group" style="display: inline-block; position: relative;">
                     <input class="form-control mr-sm-2" type="text" id="search-content" style="padding-left: 1rem; margin-left: 1rem;" placeholder="Search">
                     <span id="search-error" style="position:absolute; color:red; top: -1.5rem; left: 1rem; display:none;">Only digits allowed!</span>
+                    <span id="last-search" style="display:none; position:absolute; bottom: -1.5rem; left: 1rem;">Last search: <span id="last-search-text" style="text-decoration:underline; color:blue; cursor: pointer;"></span></span>
                 </div>
                 <input type="submit" class="btn btn-success" value="Search" />
                 </input>
@@ -162,7 +138,6 @@ include "checks/studentLogged.php";
         <div>
             <h4 id="current-search-results">Search all</h4>
             <h3><span id="results-found"></span> results</h3>
-            <h5 id="pages-number"></h5>
         </div>
         <div id="container-table">
             <h1 style="margin-bottom: 1rem;">Students</h1>
@@ -190,20 +165,27 @@ include "checks/studentLogged.php";
                 </li>
                 <li class="page-item" id="last"><span class="page-link">Last</span></li>
             </ul>
+            <div>
+                <span id="current-page"></span>
+            </div>
         </div>
     </div>
     <script>
         $(document).ready(function() {
             var pageNumber = 1,
                 totalPages = 1,
-                queryString = "";
+                queryString = "",
+                previousQuery = "";
 
             $("tbody").on("click", ".stdid", function() {
                 window.location = 'studentRecord.php?studentid=' + $(this).text().trim();
             });
 
-            function checkPaging() {
+            $("tbody").on("click", ".grpid", function() {
+                window.location = 'groupRecord.php?group=' + $(this).text().trim();
+            });
 
+            function checkPaging() {
                 if (totalPages === 1) {
                     document.getElementById("next").setAttribute("class", "page-item disabled");
                     document.getElementById("previous").setAttribute("class", "page-item disabled");
@@ -217,20 +199,27 @@ include "checks/studentLogged.php";
                     document.getElementById("next").className = "page-item";
                     document.getElementById("previous").className = "page-item";
                 }
-
+                document.getElementById("current-page").innerHTML = `Page ${pageNumber} of ${totalPages}`;
             }
+
             $("#search-content").on("keyup paste", function(event) {
                 let re = /[^0-9]/;
                 if (re.test(event.target.value)) {
-                    $(this).val(event.target.value.match(/[0-9]+/)[0]);
+                    el = event.target.value.match(/[0-9]+/);
+                    if(el !== null) {
+                    $(this).val(el[0]);
                     $(this).css("border", "3px solid red");
                     $("#search-error").css("display", "block");
                     setTimeout(function() {
                         $("#search-error").css("display", "none");
                         $("#search-content").css("border", "0");
                     }, 3000);
+                } else {
+                    $(this).val("");
                 }
+            }
             })
+
             $(".search-option").on("click", function(event) {
                 event.preventDefault();
                 let searchCriteria = event.target.innerHTML;
@@ -254,6 +243,11 @@ include "checks/studentLogged.php";
                 $("#grade-criteria").html(gradeCriteria);
             })
 
+            $("#last-search-text").on("click", function() {
+                $("#search-content").val($(this).text());
+                $("#last-search").css("display", "none");
+            })
+
             $("#search-form").on("submit", function(event) {
                 event.preventDefault();
                 var searchedFor = document.getElementById("current-search-results");
@@ -267,9 +261,10 @@ include "checks/studentLogged.php";
                     queryString = `?grade=${searchValue}&filter=${gradeCriteria.toLowerCase()}&sort=${sortingCriteria.toLowerCase()}`;
                 } else {
                     queryString = `?studentId=${searchValue}`;
-                    searchedFor.innerHTML = `Search matching students ID starting with "${searchValue}"`;
+                    searchedFor.innerHTML = `Search students IDs containing "${searchValue}"`;
                 }
-                searchRecords();
+                searchRecords(true);
+                $("#search-content").val("");
             });
 
             $("#next span").on("click", function() {
@@ -289,7 +284,7 @@ include "checks/studentLogged.php";
                 searchRecords();
             });
 
-            function searchRecords() {
+            function searchRecords(newSearch = false) {
                 $.ajax({
                     url: 'searchRequests.php' + queryString,
                     data: {
@@ -300,7 +295,6 @@ include "checks/studentLogged.php";
                     success: function(output, status, xhr) {
                         $("#results-found").html(output.resultsFound);
                         totalPages = parseInt(output["pages"]);
-                        $("#pages-number").text("Pages " + totalPages);
                         pageNumber = parseInt(output["currentPage"]);
                         $("#table-body").empty();
                         let tableBody = document.getElementById("table-body");
@@ -310,14 +304,11 @@ include "checks/studentLogged.php";
                             let td1 = document.createElement("TD"),
                                 td2 = document.createElement("TD");
                             th.setAttribute("scope", row);
-                            let span1 = document.createElement("SPAN"),
-                                span2 = document.createElement("SPAN");
-                            span1.setAttribute("class", "cont");
-                            span2.setAttribute("class", "stdid");
-                            td1.appendChild(span1);
-                            span2.innerText = el["ID"];
-                            td1.appendChild(span2);
-                            td2.innerHTML = `<span class="cont"></span> ${el["group_number"]}`;
+                            let span = document.createElement("SPAN");
+                            span.setAttribute("class", "stdid");
+                            span.innerText = el["ID"];
+                            td1.appendChild(span);
+                            td2.innerHTML = `<span class="grpid">${el["group_number"]}</span>`;
                             th.innerHTML = i + 1;
                             row.appendChild(th);
                             row.appendChild(td1);
@@ -335,11 +326,27 @@ include "checks/studentLogged.php";
 
                     }
                 });
-
+                if (newSearch) {
+                    $.ajax({
+                        url: 'functionality/getLastSearch.php',
+                        type: 'GET',
+                        dataType: 'JSON',
+                        success: function(result) {
+                            if (result.cookie !== "empty") {
+                                $("#last-search").css("display", "block");
+                                $("#last-search-text").text(result.cookie);
+                            } else {
+                                $("#last-search").css("display", "none");
+                            }
+                        }
+                    });
+                }
             }
-            document.body.onload = searchRecords();
+            searchRecords();
         });
     </script>
+    <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.php") ?>
+
 </body>
 
 </html>

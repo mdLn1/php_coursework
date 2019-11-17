@@ -15,7 +15,6 @@
                 or die("There was a problem connecting to the database.");
             $this->dbConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
             $this->dbConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            /* check connection */
         } catch (PDOException $e) {
             echo $e->getMessage();
         }
@@ -62,16 +61,22 @@
         return $return;
     }
 
+    public function countStudentRecordsOnCriteria($sql){
+        if($result = $this->dbConnection->query($sql)){
+            return $result->fetch()[0];
+        }
+        return 0;
+    }
+
     public function dontWorryQuery($sql, $moreThanOne = true)
     {
-
         if ($stmt = $this->dbConnection->query($sql)) {
             if ($moreThanOne) {
                 $data = [];
                 foreach ($stmt as $row) {
                     $data[] = $row;
                 }
-                return $data;
+                    return $data;
             } else {
                 return $stmt->fetch(PDO::FETCH_ASSOC);
             }
@@ -128,6 +133,66 @@
         return false;
     }
 
+    function getStudentAssessments($graded_id)
+    {
+        $data = [];
+        $sql = "SELECT * FROM assessments WHERE graded_id = ?";
+        if ($stmt = $this->dbConnection->prepare($sql)) {
+            if ($stmt->execute([$graded_id])) {
+                foreach ($stmt as $row) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+        return false;
+    }
+
+    function finalizeGrade($ID)
+    {
+        if ($result = $this->getStudentAssessments($ID)) {
+            echo print_r($result);
+            if (count($result) === 2) {
+                $sql = "UPDATE students SET finalized_grade = ? WHERE ID = ?";
+                $grade = (float) ($result[0]["grade"] + $result[1]["grade"]) / 2;
+                if ($stmt = $this->dbConnection->prepare($sql)) {
+                    if ($stmt->execute([$grade, $ID])) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    function searchByGrades($grade, $filter, $sorting)
+    {
+        $sql = "SELECT * FROM students WHERE finalized_grade IS NOT NULL and finalized_grade $filter $grade ORDER BY finalized_grade $sorting";
+
+        $data = [];
+        if ($stmt = $this->dbConnection->query($sql)) {
+            while ($row = $stmt->fetch()) {
+                $data[] = $row;
+            }
+
+            return $data;
+        }
+        return false;
+    }
+
+    function getImage($image_id)
+    {
+        $sql = 'SELECT img_name,img_type,img FROM images WHERE pic_id= ?';
+        if ($stmt = $this->dbConnection->prepare($sql)) {
+            if ($stmt->execute([$image_id])) {
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                return "<img class='extra-img' src='data:" . trim($row["img_type"]) . ";base64," . base64_encode($row["img"]) . "' alt='" . $row["img_name"] . "' />";
+            }
+        }
+        return "<img class='extra-img' src='' alt='Image not found' />";
+    }
+
     function addStudent($ID, $email, $password, $group_number)
     {
         $sql = "INSERT INTO users (ID, email, pass) VALUES (?, ?, ?)";
@@ -163,3 +228,4 @@
         $this->dbConnection = null;
     }
 }
+?>

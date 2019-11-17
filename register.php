@@ -30,7 +30,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $ID_err = "Please enter an ID number.";
     } else {
         $ID = trim($_POST["ID"]);
-        if ($db->getUserDetails(trim($ID))) {
+        if (strlen($ID) !== 9) {
+            $ID_err = "Your ID must have exactly 9 characters.";
+        }
+        if (preg_match('/[^0-9]/', $ID)) {
+            $ID_err = "Your ID must be formed of digits only.";
+        }
+        if ($db->getUserDetails($ID)) {
             $ID_err = "This ID is already used by another student.";
         }
     }
@@ -39,12 +45,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $email_err = "Please enter an email.";
     } else {
         $email = trim($_POST["email"]);
+        if (!preg_match('/^([\w\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})$/', $email)) {
+            $email_err = "The email address given is invalid";
+        }
     }
 
     if (empty(trim($_POST["group"]))) {
         $group_err = "Please enter an group.";
     } else {
         $group = trim($_POST["group"]);
+        if (preg_match('/[^1-9]/', $group)) {
+            $group_err = "Group must be a digit between 1 and 10 inclusive.";
+        }
+        if ((int) $group > 10 || (int) $group < 0) {
+            $group_err = "Group must be a digit between 1 and 10 inclusive.";
+        }
     }
 
     if (empty(trim($_POST["password"]))) {
@@ -94,24 +109,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <html>
 
 <head>
+    <title>Register</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>Register</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/custom.css">
-    <style>
-        img#captcha-image {
-            margin-bottom: 1rem;
-        }
-
-        #captcha-button {
-            padding: 1rem;
-            border-radius: .5rem;
-            background-color: #5a6268;
-            color: white;
-        }
-    </style>
+    <link href="custom.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="bootstrap.min.js"></script>
 </head>
 
 <body>
@@ -128,54 +133,54 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <p><?php echo $registration_error; ?></p>
         </div>
     <?php endif; ?>
-    <div class="form-container">
-        <h2>Register</h2>
-        <p>Please fill this form to create an account.</p>
-        <form method="post" id="signupForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-            <div class="form-group <?php echo (!empty($ID_err)) ? 'has-error' : ''; ?>">
-                <label for="ID">ID</label>
-                <input type="text" class="form-control" name="ID" id="ID" aria-describedby="IDHelp" placeholder="Enter ID" value="<?php echo $ID; ?>">
-                <span class="error-input"><?php echo $ID_err; ?></span>
-            </div>
+    <div style="padding:1rem;">
+        <div class="form-container">
+            <h2>Register</h2>
+            <p>Please fill this form to create an account.</p>
+            <form method="post" id="signupForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+                <div class="form-group <?php echo (!empty($ID_err)) ? 'has-error' : ''; ?>">
+                    <label for="ID">ID</label>
+                    <input type="text" class="form-control" name="ID" id="ID" aria-describedby="IDHelp" placeholder="Enter ID" value="<?php echo $ID; ?>">
+                    <span class="error-input"><?php echo $ID_err; ?></span>
+                </div>
 
-            <div class="form-group <?php echo (!empty($email_err)) ? 'has-error' : ''; ?>">
-                <label for="email">Email</label>
-                <input type="email" class="form-control" name="email" id="email" aria-describedby="email" placeholder="Enter your email address" value="<?php echo $email; ?>">
-                <span class="error-input"><?php echo $email_err; ?></span>
-            </div>
-            <div class="form-group <?php echo (!empty($group_err)) ? 'has-error' : ''; ?>">
-                <label for="group">Available Groups</label>
-                <select class="form-control" name="group" id="group" aria-describedby="group" value="<?php echo $group ?>">
-                    <?php
-                    foreach ($availableGroups as $value) : ?>
-                        <option value="<?php echo $value ?>"><?php echo $value ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <span class="error-input"><?php echo $group_err; ?></span>
-            </div>
-            <div class="form-group <?php echo (!empty($password_err)) ? 'has-error' : ''; ?>">
-                <label for="exampleInputPassword1">Password</label>
-                <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" value="<?php echo $password ?>">
-                <span class="error-input"><?php echo $password_err; ?></span>
-            </div>
-            <div class="form-group <?php echo (!empty($confirm_password_err)) ? 'has-error' : ''; ?>">
-                <label for="exampleInputPassword2">Password</label>
-                <input type="password" name="confirm_password" class="form-control" id="exampleInputPassword2" placeholder="Confirm Password" value="<?php echo $confirm_password ?>">
-                <span class="error-input"><?php echo $confirm_password_err; ?></span>
-            </div>
-            <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
-                <img id="captcha-image" src='data:image/jpeg;base64,<?php $captchaImg = makeImgCaptcha();
-                                                                    echo $captchaImg; ?>' alt="captcha image" />
-                <input type="button" id="captcha-button" value="Regenerate" />
-                <?php echo $_SESSION["captcha"]; ?>
-                <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
-                <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
-            </div>
-            <button type="submit" class="btn btn-primary">Sign up</button>
-        </form>
+                <div class="form-group <?php echo (!empty($email_err)) ? 'has-error' : ''; ?>">
+                    <label for="email">Email</label>
+                    <input type="email" class="form-control" name="email" id="email" aria-describedby="email" placeholder="Enter your email address" value="<?php echo $email; ?>">
+                    <span class="error-input"><?php echo $email_err; ?></span>
+                </div>
+                <div class="form-group <?php echo (!empty($group_err)) ? 'has-error' : ''; ?>">
+                    <label for="group">Available Groups</label>
+                    <select class="form-control" name="group" id="group" aria-describedby="group" value="<?php echo $group ?>">
+                        <?php
+                        foreach ($availableGroups as $value) : ?>
+                            <option value="<?php echo $value ?>"><?php echo $value ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <span class="error-input"><?php echo $group_err; ?></span>
+                </div>
+                <div class="form-group <?php echo (!empty($password_err)) ? 'has-error' : ''; ?>">
+                    <label for="exampleInputPassword1">Password</label>
+                    <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" value="<?php echo $password ?>">
+                    <span class="error-input"><?php echo $password_err; ?></span>
+                </div>
+                <div class="form-group <?php echo (!empty($confirm_password_err)) ? 'has-error' : ''; ?>">
+                    <label for="exampleInputPassword2">Password</label>
+                    <input type="password" name="confirm_password" class="form-control" id="exampleInputPassword2" placeholder="Confirm Password" value="<?php echo $confirm_password ?>">
+                    <span class="error-input"><?php echo $confirm_password_err; ?></span>
+                </div>
+                <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
+                    <img id="captcha-image" src='data:image/jpeg;base64,<?php $captchaImg = makeImgCaptcha();
+                                                                        echo $captchaImg; ?>' alt="captcha image" />
+                    <input type="button" id="captcha-button" value="Regenerate" />
+                    <?php echo $_SESSION["captcha"]; ?>
+                    <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
+                    <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
+                </div>
+                <button type="submit" class="btn btn-primary">Sign up</button>
+            </form>
+        </div>
     </div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="js/bootstrap.min.js"></script>
     <script>
         $(document).ready(function() {
             $("#captcha-button").on('click', function(event) {
@@ -194,6 +199,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             })
         });
     </script>
+    <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.php") ?>
+
 </body>
 
 </html>

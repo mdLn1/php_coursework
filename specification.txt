@@ -11,7 +11,7 @@ on login: student sees his registered peers from group  >> OK
 assess them with a grade between 0 and 10, textual justification
 and an image  >> OK
 student can save the peer evaluation without finalising it  >> OK
-once finalized no more changes can be done (edit/delete)  >> OK Delete???
+once finalized no more changes can be done (edit/delete)  >> OK
 !!! prevent SQL injection
 
 Level 3
@@ -20,10 +20,10 @@ Tutor can see individual student's overall
 profile (ID, overall grade) and each grade received
 from every student together with the text and image
 !!! only if peer evaluations are finalized  >> OK
-Tutor can search for student by ID 
+Tutor can search for student by ID  >> OK
 search results must be returned in a paginated list >> OK
 search results can be filtered by lower to higher or higher to 
-lower  while searching via numeric grade
+lower  while searching via numeric grade >> OK
 Tutor can send the completed group’s grades via email
 Keep the body of the email concise, e.g., only the ID 
 and corresponding overall grade). Note that there should be

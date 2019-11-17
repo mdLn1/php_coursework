@@ -3,9 +3,8 @@ session_start();
 
 include "checks/loggedIn.php";
 include "checks/tutorLogged.php";
-include "functionality/fetchImage.php";
 $data = array();
-$group_number = $image_err = $image_success = $record_updated = "";
+$group_number = $grade_err = $graded_id_err = $justification_err = $image_err = $image_success = $record_updated = "";
 include "database.php";
 
 $db = new Database();
@@ -22,78 +21,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dbConnect = $db->getDbConnection();
     $justification = $graded_id = $grader_id = "";
     $grade = 0;
-
-    if (empty(trim($_POST["justification"]))) {
+    $grader_id = $_SESSION["ID"];
+    $finalize = isset($_POST['btnFinish']);
+    $delete = isset($_POST['btnDelete']);
+    $save = isset($_POST['btnSave']);
+    $image_exists = isset($_POST["image-exists"]);
+    if (!empty(trim($_POST["justification"]))) {
         $justification = trim($_POST["justification"]);
+        if (strlen($justification) > 1000) {
+            $justification_err = "Justification too long";
+        }
     }
-    if (empty(trim($_POST["graded_id"]))) {
+    if (!empty(trim($_POST["graded_id"]))) {
         $graded_id = trim($_POST["graded_id"]);
+        if (preg_match('/[^0-9]/', $graded_id)) {
+            $graded_id_err = "Incorrect peer id.";
+        }
+        if (strlen($graded_id) !== 9) {
+            $graded_id_err = "Incorrect peer id.";
+        }
     }
-    if (empty(trim($_POST["grader_id"]))) {
-        $grader_id = trim($_POST["grader_id"]);
+    if (!empty(trim($_POST["grade"]))) {
+        $grade = trim($_POST["grade"]);
+        if (preg_match('/[^1-9]/', $grade)) {
+            $grade_err = "Grade value must be between 0 and 10 inclusive";
+        }
+        if ($grade < 0 || $grade > 10) {
+            $grade_err = "Grade value must be between 0 and 10 inclusive";
+        }
     }
-    if (empty(trim($_POST["grade"]))) {
-        $grade= (int)trim($_POST["grade"]);
-    }
-
-    if (!empty($_FILES["fileToUpload"]["size"])) {
-        if (!preg_match('/gif|png|x-png|jpeg/', $_FILES['fileToUpload']['type'])) {
-            $image_err = '<p>Only browser compatible images allowed</p>';
-        } else if ($_FILES['fileToUpload']['size'] > 100000) {
-            $image_err = '<p>Sorry file too large</p>';
-            // Connect to database
-        } else if (!($handle = fopen($_FILES['fileToUpload']['tmp_name'], "r"))) {
-            $image_err = '<p>Error opening temp file</p>';
-        } else if (!($image = fread($handle, filesize($_FILES['fileToUpload']['tmp_name'])))) {
-            $image_err = '<p>Error reading temp file</p>';
-        } else {
-            fclose($handle);
-            // Commit image to the database
-            $image_name = $_FILES['fileToUpload']['name'];
-            $image_type = $_FILES['fileToUpload']['type'];
-            if (!(isset($_POST["image-exists"]))) {
-                $query = 'INSERT INTO images (img_name,img_type,img) VALUES ("' . $image_name . '","' . $image_type  . '","' . $image . '")';
+    if (empty($grade_err) && empty($graded_id_err) && empty($justification_err)) {
+        if (!empty($_FILES["fileToUpload"]["size"])) {
+            if (!preg_match('/gif|png|x-png|jpeg/', $_FILES['fileToUpload']['type'])) {
+                $image_err = '<p>Only browser compatible images allowed</p>';
+            } else if ($_FILES['fileToUpload']['size'] > 100000) {
+                $image_err = '<p>Sorry file too large</p>';
+            } else if (!($handle = fopen($_FILES['fileToUpload']['tmp_name'], "r"))) {
+                $image_err = '<p>Error opening temp file</p>';
+            } else if (!($image = fread($handle, filesize($_FILES['fileToUpload']['tmp_name'])))) {
+                $image_err = '<p>Error reading temp file</p>';
             } else {
-                $pic_id = $_POST["image-exists"];
-                $query = 'UPDATE images SET img_name = "' . $image_name . '", img_type = "' . $image_type  . '", img = "' . $image . '" WHERE pic_id = "' . $pic_id . '"';
-            }
-            $result = [];
-            if (!($result = $dbConnect->query($query))) {
-                $image_err = '<p>Error writing image to database</p>';
-            } else {
-                if (!(isset($_POST["image-exists"]))) {
-                    $image_id = $result->lastInsertId();
-                    $query = "UPDATE assessments SET image_id = ? WHERE grader_id = ? AND graded_id = ?";
+                fclose($handle);
+                $image_name = $_FILES['fileToUpload']['name'];
+                $image_type = $_FILES['fileToUpload']['type'];
+                if (!$image_exists) {
+                    $query = 'INSERT INTO images (img_name,img_type,img) VALUES (?, ?, ?)';
                     if ($stmt = $dbConnect->prepare($query)) {
-                        if ($stmt->execute([$image_id, $_SESSION["ID"], $graded_id])) {
-                            $image_success = '<p>Record updated.</p>';
+                        if ($stmt->execute([$image_name, $image_type, $image])) {
+                            $image_id = $dbConnect->lastInsertId();
+                            $query = "UPDATE assessments SET image_id = ? WHERE grader_id = ? AND graded_id = ?";
+                            if ($stmt = $dbConnect->prepare($query)) {
+                                if ($stmt->execute([$image_id, $grader_id, $graded_id])) {
+                                    $image_success = '<p>Record updated.</p>';
+                                } else {
+                                    $image_err = '<p>Error linking image to user</p>';
+                                }
+                            }
                         } else {
                             $image_err = '<p>Error linking image to user</p>';
                         }
                     }
                 } else {
-                    $image_success .= '<p>Image successfully copied to database</p>';
+                    $pic_id = $_POST["image-exists"];
+                    $query = 'UPDATE images SET img_name = ?, img_type = ?, img = ? WHERE pic_id = "' . $pic_id . '"';
+                    if ($stmt = $dbConnect->prepare($query)) {
+                        if ($stmt->execute([$image_name, $image_type, $image])) {
+                            $image_success = '<p>Record updated.</p>';
+                        } else {
+                            $image_err = '<p>Error updating image for assessment</p>';
+                        }
+                    }
                 }
             }
         }
-    }
-    $sql = "";
-    if (isset($_POST['btnFinish'])) {
-        $sql = "UPDATE assessments SET grade = ?, justification = ?, finalized = 1 WHERE grader_id = ? AND graded_id = ?";
-    } else if (isset($_POST['btnSave'])) {
-        $sql = "UPDATE assessments SET grade = ?, justification = ? WHERE grader_id = ? AND graded_id = ?";
-    } else if (isset($_POST['btnDelete'])) {
-        $sql = "UPDATE assessments SET grade = '', justification = '', image_id = NULL WHERE grader_id = ? AND graded_id = ?";
-    }
-    if ($stmt = $dbConnect->prepare($sql)) {
-
-        if (!isset($_POST['btnDelete'])) {
-            if($stmt->execute([0, "", $grader_id, $graded_id])){
-                $record_updated = "<p>Information has been deleted for $param_graded_id.</p>";
+        $sql = "";
+        if ($finalize) {
+            $sql = "UPDATE assessments SET grade = ?, justification = ?, finalized = 1 WHERE grader_id = ? AND graded_id = ?";
+        } else if ($save) {
+            $sql = "UPDATE assessments SET grade = ?, justification = ? WHERE grader_id = ? AND graded_id = ?";
+        } else if ($delete) {
+            $sql = "UPDATE assessments SET grade = ?, justification = ?, image_id = NULL WHERE grader_id = ? AND graded_id = ?";
+            $justification = "";
+            $grade = 0;
+        }
+        if ($stmt = $dbConnect->prepare($sql)) {
+            if ($finalize) {
+                if ($grade === 0 || $grade > 10) {
+                    $grade_err = "Grade must be between 1 and 10 inclusive.";
+                    return;
+                }
             }
-        } else {
-            if($stmt->execute([$grader_id, $graded_id])){
-                $record_updated = "<p>Information has been successfully updated for $param_graded_id.</p>";
+            if ($stmt->execute([$grade, $justification, $grader_id, $graded_id])) {
+                if ($delete) {
+                    $record_updated = "Information deleted for $graded_id.";
+                } else {
+                    if ($finalize) {
+                        if ($db->finalizeGrade($graded_id)) {
+                            $record_updated = "<p>Information has been successfully updated for $graded_id.</p>";
+                        } else {
+                            $record_updated = "<p>Update failed for student $graded_id.</p>";
+                        }
+                    } else {
+                        $record_updated = "<p>Information has been successfully updated for $graded_id.</p>";
+                    }
+                }
             }
         }
     }
@@ -103,45 +134,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html>
 
 <head>
+    <title>Peer review</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>Peer review</title>
-
     <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/custom.css">
+    <link href="custom.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="bootstrap.min.js"></script>
     <style>
-        img.extra-img {
-            margin-bottom: 1rem;
+        div.col-sm-8 {
+            padding-left: 1.5rem;
         }
 
-        img.extra-img {
-            max-width: 100%;
-            height: auto;
-        }
-
-        .img-container {
-            width: 5rem;
-            height: auto;
-            min-width: 3rem;
-        }
-
-        form.col-sm-6 {
-            margin-bottom: 2rem;
-            padding: 1rem;
-            background-color: #d6d7d8;
-            z-index: 1;
-            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        label {
+            font-weight: bold;
         }
     </style>
 </head>
 
 <body>
+
     <?php include("pageContent/navbar.php") ?>
+    <div style="margin: 1rem auto;"></div>
     <?php if (!empty($image_err)) : ?>
         <div class="alert alert-danger" role="alert">
             <h4 class="alert-heading">Error uploading image!</h4>
             <?php echo $image_err ?>
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($graded_id_err) || !empty($justification_err) || !empty($grade_err)) : ?>
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Input errors on last form submission</h4>
+            <p><?php echo $graded_id_err ?> </p>
+            <p><?php echo $justification_err ?> </p>
+            <p><?php echo $grade_err ?> </p>
         </div>
     <?php endif; ?>
     <?php if (!empty($record_updated)) : ?>
@@ -151,8 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php echo $image_success ?>
         </div>
     <?php endif; ?>
-    <h1 class="display-3" style="text-align: center; padding-bottom: 2rem">Peer assessments group <?php echo $group_number ?></h1>
-    <div class="jumbotron">
+    <h1 class="display-5" style="text-align: center; padding-bottom: 1rem">Peer assessments group <?php echo $group_number ?></h1>
+    <div class="jumbotron" style="display: flex; flex-direction: column; align-items: center;">
         <?php
         if (count($data) == 0) {
             echo '<div class="alert alert-danger" role="alert">
@@ -160,60 +187,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>';
         } else {
             foreach ($data as $value) : ?>
-                <form class="col-sm-6" id="<?php echo $value["graded_id"] ?>" enctype="multipart/form-data" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
-                    <input type="hidden" name="graded_id" id="<?php echo $value["graded_id"] ?>" value="<?php echo $value['graded_id'] ?>">
-                    <h3 class="display-5">Assessment for <?php echo $value['graded_id'] ?></h3>
-                    <div class="form-group">
-                        <label for="grade">Grade</label>
-                        <select class="form-control" id="grade" name="grade">
-                            <?php if ($value["grade"] == 0) echo "<option value='0' selected>Please select</option>";
-                                    else echo "<option value='0'>Please select</option>";
-                                    for ($x = 1; $x < 11; $x++) {
-                                        if ($value["grade"] == $x) {
-                                            echo "<option value='$x' selected>$x</option>";
-                                        } else {
-                                            echo "<option value='$x'>$x</option>";
-                                        }
-                                    } ?>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="justification">Justification</label>
-                        <textarea class="form-control" id="justification" name="justification" rows="3"><?php echo $value['justification'] ?></textarea>
-                    </div>
-                    <div class="form-group">
-                        <?php if ($value['image_id'] === NULL) : ?>
-                            <h2>No image added yet!</h2>
-                        <?php else : ?>
-                            <div class="img-container">
-                                <?php echo getImage($mysqli, $value['image_id']); ?>
+                <?php if ($value['finalized'] === 1) : ?>
+                    <div class="col-12 col-sm-12 col-md-10 col-lg-6 assessment">
+                        <h3 class="display-5">Assessment for <?php echo $value['graded_id'] ?></h3>
+                        <div class="form-group row">
+                            <label for="grade" class="col col-form-label">Grade:</label>
+                            <div class="col-6 col-sm-8 col-md-8 col-lg-8">
+                                <input type="text" readonly class="form-control-plaintext" id="grade" value="<?php echo $value["grade"]; ?>" />
                             </div>
-                            <button id="<?php echo $value["graded_id"] ?>" role="button" class="btn btn-dark btn-md">Change Picture</button>
-                            <input type="hidden" id="image-exists" name="image-exists" value="<?php echo $value['image_id']; ?>" />
+                        </div>
+                        <div class="form-group row">
+                            <label for="justification" class="col col-form-label">Justification:</label>
+                            <div class="col-6 col-sm-8 col-md-8 col-lg-8">
+                                <input type="text" readonly class="form-control-plaintext" id="justification" value="<?php echo $value["justification"]; ?>" />
+                            </div>
+                        </div>
+                        <?php if ($value['image_id'] !== NULL) : ?>
+                            <div class="form-group row">
+                                <label for="image" class="col col-form-label">Image:</label>
+                                <div class="col-6 col-sm-8 col-md-8 col-lg-8">
+                                    <div class="img-container">
+                                        <?php echo $db->getImage($value['image_id']); ?>
+                                    </div>
+                                </div>
+                            </div>
                         <?php endif; ?>
-                    </div>
-                    <div class="form-group" id="show<?php echo $value["graded_id"]; ?>" style="<?php if ($value['image_id'] !== NULL) echo 'display: none;' ?>">
-                        <label for="fileToUpload">Select image to upload:</label>
-                        <input class="form-control" type="file" name="fileToUpload" id="fileToUpload">
-                    </div>
-                    <hr class="my-4">
-                    <?php if ($value['finalized'] == 1) : ?>
+                        <hr class="my-4">
                         <p class="text-danger">You already submitted the final grade. No more changes can be done.</p>
-                    <?php else : ?>
+                    </div>
+                <?php else : ?>
+                    <form class="col-12 col-sm-12 col-md-10 col-lg-6 assessment" id="<?php echo $value["graded_id"] ?>" enctype="multipart/form-data" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+                        <input type="hidden" name="graded_id" id="<?php echo $value["graded_id"] ?>" value="<?php echo $value['graded_id'] ?>">
+                        <h3 class="display-5">Assessment for <?php echo $value['graded_id'] ?></h3>
+                        <div class="form-group">
+                            <label for="grade">Grade</label>
+                            <select class="form-control" id="grade" name="grade">
+                                <?php if ($value["grade"] == 0) echo "<option value='0' selected>Please select</option>";
+                                            else echo "<option value='0'>Please select</option>";
+                                            for ($x = 1; $x < 11; $x++) {
+                                                if ($value["grade"] == $x) {
+                                                    echo "<option value='$x' selected>$x</option>";
+                                                } else {
+                                                    echo "<option value='$x'>$x</option>";
+                                                }
+                                            } ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="justification">Justification</label>
+                            <textarea class="form-control" id="justification" name="justification" rows="3"><?php echo $value['justification'] ?></textarea>
+                        </div>
+                        <div class="form-group">
+                            <?php if ($value['image_id'] === NULL) : ?>
+                                <h2>No image added yet!</h2>
+                            <?php else : ?>
+                                <label>Image</label>
+                                <div class="img-container">
+                                    <?php echo $db->getImage($value['image_id']); ?>
+                                </div>
+                                <?php if ($value['finalized'] !== 1) : ?>
+                                    <button id="<?php echo $value["graded_id"] ?>" role="button" class="btn btn-dark btn-md">Change Picture</button>
+                                <?php endif; ?>
+                                <input type="hidden" id="image-exists" name="image-exists" value="<?php echo $value['image_id']; ?>" />
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group" id="show<?php echo $value["graded_id"]; ?>" style="<?php if ($value['image_id'] !== NULL) echo 'display: none;' ?>">
+                            <label for="fileToUpload">Select image to upload:</label>
+                            <input class="form-control" type="file" name="fileToUpload" id="fileToUpload">
+                        </div>
+
                         <div style="position:relative;">
                             <p>Click finish to finalize the grade.</p>
                             <input type="submit" class="btn btn-primary btn-lg" name="btnFinish" value="Finish" />
                             <input type="submit" class="btn btn-success btn-lg" name="btnSave" value="Save" />
                             <input type="submit" class="btn btn-danger btn-lg" style="position: absolute; right:.3rem;" name="btnDelete" value="Delete" />
                         </div>
-                    <?php endif; ?>
-                </form>
+                    </form>
+                <?php endif; ?>
         <?php endforeach;
         } ?>
     </div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="js/bootstrap.min.js"></script>
+    </div>
     <script>
         $(document).ready(function() {
             $("button").on('click', function(event) {
@@ -222,6 +276,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         });
     </script>
+    <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.php") ?>
+
 </body>
 
 </html>
