@@ -206,18 +206,18 @@ include "checks/studentLogged.php";
                 let re = /[^0-9]/;
                 if (re.test(event.target.value)) {
                     el = event.target.value.match(/[0-9]+/);
-                    if(el !== null) {
-                    $(this).val(el[0]);
-                    $(this).css("border", "3px solid red");
-                    $("#search-error").css("display", "block");
-                    setTimeout(function() {
-                        $("#search-error").css("display", "none");
-                        $("#search-content").css("border", "0");
-                    }, 3000);
-                } else {
-                    $(this).val("");
+                    if (el !== null) {
+                        $(this).val(el[0]);
+                        $(this).css("border", "3px solid red");
+                        $("#search-error").css("display", "block");
+                        setTimeout(function() {
+                            $("#search-error").css("display", "none");
+                            $("#search-content").css("border", "0");
+                        }, 3000);
+                    } else {
+                        $(this).val("");
+                    }
                 }
-            }
             })
 
             $(".search-option").on("click", function(event) {
@@ -284,6 +284,22 @@ include "checks/studentLogged.php";
                 searchRecords();
             });
 
+            function getLastSearch() {
+                $.ajax({
+                    url: 'functionality/getLastSearch.php',
+                    type: 'GET',
+                    dataType: 'JSON',
+                    success: function(result) {
+                        if (result.cookie !== "empty") {
+                            $("#last-search").css("display", "block");
+                            $("#last-search-text").text(result.cookie);
+                        } else {
+                            $("#last-search").css("display", "none");
+                        }
+                    }
+                });
+            };
+
             function searchRecords(newSearch = false) {
                 $.ajax({
                     url: 'searchRequests.php' + queryString,
@@ -294,28 +310,35 @@ include "checks/studentLogged.php";
                     dataType: 'JSON',
                     success: function(output, status, xhr) {
                         $("#results-found").html(output.resultsFound);
-                        totalPages = parseInt(output["pages"]);
-                        pageNumber = parseInt(output["currentPage"]);
                         $("#table-body").empty();
-                        let tableBody = document.getElementById("table-body");
-                        output["queryResults"].forEach((el, i) => {
-                            let row = document.createElement("TR");
-                            let th = document.createElement("TH");
-                            let td1 = document.createElement("TD"),
-                                td2 = document.createElement("TD");
-                            th.setAttribute("scope", row);
-                            let span = document.createElement("SPAN");
-                            span.setAttribute("class", "stdid");
-                            span.innerText = el["ID"];
-                            td1.appendChild(span);
-                            td2.innerHTML = `<span class="grpid">${el["group_number"]}</span>`;
-                            th.innerHTML = i + 1;
-                            row.appendChild(th);
-                            row.appendChild(td1);
-                            row.appendChild(td2);
-                            tableBody.appendChild(row);
-                        });
-                        checkPaging();
+                        if (output.resultsFound === 0) {
+                            $("#current-page").hide();
+                            $(".pagination").hide();
+                        } else {
+                            $("#current-page").show();
+                            $(".pagination").show();
+                            totalPages = parseInt(output["pages"]);
+                            pageNumber = parseInt(output["currentPage"]);
+                            let tableBody = document.getElementById("table-body");
+                            output["queryResults"].forEach((el, i) => {
+                                let row = document.createElement("TR");
+                                let th = document.createElement("TH");
+                                let td1 = document.createElement("TD"),
+                                    td2 = document.createElement("TD");
+                                th.setAttribute("scope", row);
+                                let span = document.createElement("SPAN");
+                                span.setAttribute("class", "stdid");
+                                span.innerText = el["ID"];
+                                td1.appendChild(span);
+                                td2.innerHTML = `<span class="grpid">${el["group_number"]}</span>`;
+                                th.innerHTML = i + 1;
+                                row.appendChild(th);
+                                row.appendChild(td1);
+                                row.appendChild(td2);
+                                tableBody.appendChild(row);
+                            });
+                            checkPaging();
+                        }
                     },
                     error: function(xhr, status, error) {
                         $("#top-alert").css("display", "block");
@@ -327,22 +350,11 @@ include "checks/studentLogged.php";
                     }
                 });
                 if (newSearch) {
-                    $.ajax({
-                        url: 'functionality/getLastSearch.php',
-                        type: 'GET',
-                        dataType: 'JSON',
-                        success: function(result) {
-                            if (result.cookie !== "empty") {
-                                $("#last-search").css("display", "block");
-                                $("#last-search-text").text(result.cookie);
-                            } else {
-                                $("#last-search").css("display", "none");
-                            }
-                        }
-                    });
+                    getLastSearch();
                 }
             }
             searchRecords();
+            getLastSearch();
         });
     </script>
     <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.php") ?>

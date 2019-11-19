@@ -134,7 +134,7 @@ if (!empty($_SERVER['QUERY_STRING'])) {
             });
         });
     </script>
-    <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.php") ?>
+    <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.html") ?>
 </body>
 
 </html>

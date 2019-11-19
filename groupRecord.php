@@ -22,7 +22,7 @@ if (!empty($_SERVER['QUERY_STRING'])) {
     if ($result = $db->dontWorryQuery("SELECT * FROM students WHERE group_number = $group")) {
         $data = $result;
     }
-    if ($_SERVER["METHOD_REQUEST" == "POST"]) {
+    if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $subject = "";
         if ($_POST["completedGrades"]) {
             $subject = "Final result";
@@ -134,7 +134,7 @@ if (!empty($_SERVER['QUERY_STRING'])) {
             <?php } ?>
         </div>
     </div>
-    <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.php") ?>
+    <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.html") ?>
 </body>
 
 </html>
