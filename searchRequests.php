@@ -13,11 +13,11 @@ $data = [];
 $total_pages = $resultsFound = $offset = 0;
 $pageNumber = 1;
 $records_page = 5;
-if(!isset($_SERVER['HTTP_REFERER'])){
-    responseError("Invalid origin request", 403, "Forbidden");
-} else if ($_SERVER['HTTP_REFERER'] != URLFORM){
-    responseError("Invalid origin request", 403, "Forbidden");
-}
+// if(!isset($_SERVER['HTTP_REFERER'])){
+//     responseError("Invalid origin request", 403, "Forbidden");
+// } else if ($_SERVER['HTTP_REFERER'] != URLFORM){
+//     responseError("Invalid origin request", 403, "Forbidden");
+// }
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SERVER['QUERY_STRING'])) {

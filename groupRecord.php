@@ -23,57 +23,6 @@ if (!empty($_SERVER['QUERY_STRING'])) {
         $data = $result;
     }
 }
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $subject = "";
-        if(!isset($_POST["group_number"])){
-            $group_err = "Group number not set.";
-        }
-        $group = $_POST["group_number"];
-        if(empty($group_err)){
-            include "database.php";
-    parse_str($_SERVER['QUERY_STRING'], $queries);
-    if (isset($queries["group"])) {
-        $group = $queries["group"];
-        if (preg_match('/[^1-9]/', $group) || $group < 1 || $group > 10) {
-            $group_err = "Group number must be between 1 and 10 inclusive.";
-        }
-    } else {
-        $group_err = "Group number must be between 1 and 10 inclusive.";
-    }
-    $db = new Database();
-    if ($result = $db->dontWorryQuery("SELECT * FROM students WHERE group_number = $group")) {
-        $data = $result;
-    }
-        if (isset($_POST["completedGrades"])) {
-            $subject = "Final result";
-            foreach ($data as $row) {
-                $finalized_grade = $row["finalized"];
-                $id = $row["ID"];
-                $email = "";
-                $body = "Dear Student $id, \n Your final grade is $finalized_grade.";
-                if ($stmt = $db->query("SELECT email FROM users WHERE ID = $id")) {
-                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $email = $result["email"];
-                    mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
-                }
-                
-            }
-        } else if (isset($_POST["reminderGrades"])) {
-            $subject = "Peer evaluation reminder";
-            foreach ($data as $row) {
-                $id = $row["ID"];
-                $email = "";
-                $body = "Dear Student $id, \n This is a polite reminder to finalize your peers evaluation.";
-                if ($stmt = $db->query("SELECT email FROM users WHERE ID = $id")) {
-                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $email = $result["email"];
-                    
-                    mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
-                }
-            }
-        }
-        }
-    }
 ?>
 
 <!DOCTYPE html>
@@ -103,11 +52,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div id="container-table">
             <h2 style="margin-bottom: 1rem;">Group <?php echo $group; ?> Members</h2>
             <br />
+            <div class="alert alert-danger" id="top-alert-error" role="alert" style="display: none;">
+                <h4 class="alert-heading">Error! Request not completed</h4>
+                <p id="error-message"></p>
+            </div>
+            <div class="alert alert-success" id="top-alert-success" role="alert" style="display: none;">
+                <h4 class="alert-heading">Success!</h4>
+                <p id="success-message"></p>
+            </div>
             <?php if (!empty($group_err)) { ?>
-            <div class="alert alert-danger" role="alert">
+                <div class="alert alert-danger" role="alert">
                     <h4 class="alert-heading">This group has no students registered</h4>
                 </div>
-            <?php } if (count($data) > 0) {
+            <?php }
+            if (count($data) > 0) {
                 $finalize = 0;
                 $times = 0; ?>
                 <div class="content-wrapper">
@@ -136,21 +94,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </table>
 
 
-                    
-                        <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-                            <input type="hidden" name="group_number" value="<?php echo $group; ?>">
-                            <?php if ($finalize === 3) { ?>
+                    <div>
+                        <input type="hidden" id="group_number" value="<?php echo $group; ?>">
+                        <?php if ($finalize === 3) { ?>
                             <div class="alert alert-success" role="alert">
                                 <h4 class="alert-heading">This group has finished the peer evaluation.</h4>
-                                <button type="submit" name="completedGrades" class="btn btn-success">Send group evaluation</button>
+                                <button id="completed" name="completedGrades" class="btn btn-success">Send group evaluation</button>
                             </div>
-                            <?php } else { ?>
+                        <?php } else { ?>
                             <div class="alert alert-warning" role="alert">
                                 <h4 class="alert-heading">This group has not finished the peer evaluation.</h4>
-                                <button type="submit" name="reminderGrades" class="btn btn-success">Send group reminder</button>
+                                <button id="reminder" type="submit" name="reminderGrades" class="btn btn-success">Send group reminder</button>
                             </div>
-                            <?php } ?>
-                        </form>
+                        <?php } ?>
+                    </div>
                 </div>
             <?php } else { ?>
 
@@ -161,6 +118,61 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
     </div>
     <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.html") ?>
+
+    <script>
+        $(document).ready(function() {
+            $("#reminder").on("click", function() {
+                sendRequest(completed = false);
+            });
+            $("#completed").on("click", function() {
+                sendRequest(completed = true);
+            });
+
+            function sendRequest(completed = false) {
+                let group = parseInt($("#group_number").val());
+                let reqData = {
+                    group_number: group
+                };
+                if (!completed) {
+                    reqData.reminderGrades = "set";
+                } else {
+                    reData.completedGrades = "set";
+                }
+                $.ajax({
+                    url: 'sendMail.php',
+                    data: reqData,
+                    type: 'POST',
+                    dataType: 'JSON',
+                    success: function(output, status, xhr) {
+                        $("#top-alert-success").css("display", "block");
+                        if (completed) {
+                            $("#completed").prop("disabled", true);
+                            $("#completed").css("background-color", "gray");
+                            $("#completed").css("border", "none");
+                            $("#completed").blur();
+                            $("#success-message").text("Final grades emailed to group members");
+                        } else {
+                            $("#reminder").prop("disabled", true);
+                            $("#reminder").css("background-color", "gray");
+                            $("#reminder").css("border", "none");
+                            $("#reminder").blur();
+                            $("#success-message").text("Reminder email sent to group members");
+                        }
+                        setTimeout(function() {
+                            $("#top-alert").css("display", "none");
+                        }, 5000);
+                    },
+                    error: function(xhr, status, error) {
+                        $("#top-alert-error").css("display", "block");
+                        $("#error-message").text(xhr.responseJSON.message);
+                        setTimeout(function() {
+                            $("#top-alert-error").css("display", "none");
+                        }, 5000);
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>
