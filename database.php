@@ -2,10 +2,10 @@
 {
 
     private $dbConnection;
-    private $host = "localhost";
-    private $database = "phpcw";
-    private $username = "root";
-    private $password = "";
+    private $host = "mysql.cms.gre.ac.uk";
+    private $database = "mdb_cp3526m";
+    private $username = "cp3526m";
+    private $password = "Peer21";
 
 
     public function __construct()

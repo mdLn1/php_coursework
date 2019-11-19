@@ -22,9 +22,29 @@ if (!empty($_SERVER['QUERY_STRING'])) {
     if ($result = $db->dontWorryQuery("SELECT * FROM students WHERE group_number = $group")) {
         $data = $result;
     }
-    if ($_SERVER["REQUEST_METHOD"] === "POST") {
+}
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $subject = "";
-        if ($_POST["completedGrades"]) {
+        if(!isset($_POST["group_number"])){
+            $group_err = "Group number not set.";
+        }
+        $group = $_POST["group_number"];
+        if(empty($group_err)){
+            include "database.php";
+    parse_str($_SERVER['QUERY_STRING'], $queries);
+    if (isset($queries["group"])) {
+        $group = $queries["group"];
+        if (preg_match('/[^1-9]/', $group) || $group < 1 || $group > 10) {
+            $group_err = "Group number must be between 1 and 10 inclusive.";
+        }
+    } else {
+        $group_err = "Group number must be between 1 and 10 inclusive.";
+    }
+    $db = new Database();
+    if ($result = $db->dontWorryQuery("SELECT * FROM students WHERE group_number = $group")) {
+        $data = $result;
+    }
+        if (isset($_POST["completedGrades"])) {
             $subject = "Final result";
             foreach ($data as $row) {
                 $finalized_grade = $row["finalized"];
@@ -34,10 +54,11 @@ if (!empty($_SERVER['QUERY_STRING'])) {
                 if ($stmt = $db->query("SELECT email FROM users WHERE ID = $id")) {
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
                     $email = $result["email"];
+                    mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
                 }
-                mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
+                
             }
-        } else if ($_POST["reminderGrades"]) {
+        } else if (isset($_POST["reminderGrades"])) {
             $subject = "Peer evaluation reminder";
             foreach ($data as $row) {
                 $id = $row["ID"];
@@ -46,12 +67,13 @@ if (!empty($_SERVER['QUERY_STRING'])) {
                 if ($stmt = $db->query("SELECT email FROM users WHERE ID = $id")) {
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
                     $email = $result["email"];
+                    
+                    mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
                 }
-                mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
             }
         }
+        }
     }
-}
 ?>
 
 <!DOCTYPE html>
@@ -81,7 +103,11 @@ if (!empty($_SERVER['QUERY_STRING'])) {
         <div id="container-table">
             <h2 style="margin-bottom: 1rem;">Group <?php echo $group; ?> Members</h2>
             <br />
-            <?php if (count($data) > 0) {
+            <?php if (!empty($group_err)) { ?>
+            <div class="alert alert-danger" role="alert">
+                    <h4 class="alert-heading">This group has no students registered</h4>
+                </div>
+            <?php } if (count($data) > 0) {
                 $finalize = 0;
                 $times = 0; ?>
                 <div class="content-wrapper">
@@ -110,21 +136,21 @@ if (!empty($_SERVER['QUERY_STRING'])) {
                     </table>
 
 
-                    <?php if ($finalize === 3) { ?>
-                        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+                    
+                        <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+                            <input type="hidden" name="group_number" value="<?php echo $group; ?>">
+                            <?php if ($finalize === 3) { ?>
                             <div class="alert alert-success" role="alert">
                                 <h4 class="alert-heading">This group has finished the peer evaluation.</h4>
                                 <button type="submit" name="completedGrades" class="btn btn-success">Send group evaluation</button>
                             </div>
-                        </form>
-                    <?php } else { ?>
-                        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+                            <?php } else { ?>
                             <div class="alert alert-warning" role="alert">
                                 <h4 class="alert-heading">This group has not finished the peer evaluation.</h4>
-                                <button type="submit" name="completedGrades" class="btn btn-success">Send group reminder</button>
+                                <button type="submit" name="reminderGrades" class="btn btn-success">Send group reminder</button>
                             </div>
+                            <?php } ?>
                         </form>
-                    <?php } ?>
                 </div>
             <?php } else { ?>
 

@@ -3,6 +3,8 @@ session_start();
 
 include "checks/loggedIn.php";
 include "checks/studentLogged.php";
+include "example.php";
+
 ?>
 <!DOCTYPE html>
 <html>

@@ -5,12 +5,20 @@ include "checks/loggedIn.php";
 include "checks/studentLogged.php";
 include "functionality/errorResponse.php";
 include "database.php";
+
+define('URLFORM', 'https://stuweb.cms.gre.ac.uk/~cp3526m/coursework/welcomeTutor.php');
 $response = array();
 $queries = array();
 $data = [];
 $total_pages = $resultsFound = $offset = 0;
 $pageNumber = 1;
 $records_page = 5;
+if(!isset($_SERVER['HTTP_REFERER'])){
+    responseError("Invalid origin request", 403, "Forbidden");
+} else if ($_SERVER['HTTP_REFERER'] != URLFORM){
+    responseError("Invalid origin request", 403, "Forbidden");
+}
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SERVER['QUERY_STRING'])) {
     $db = new Database();

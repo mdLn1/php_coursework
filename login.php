@@ -3,6 +3,7 @@ session_start();
 include "functionality/createCaptcha.php";
 include "checks/isLogged.php";
 include "database.php";
+include "example.php";
 
 // Define variables and initialize with empty values
 $ID = $password = $confirm_captcha = "";
