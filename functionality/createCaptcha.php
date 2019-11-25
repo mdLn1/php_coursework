@@ -5,7 +5,7 @@ function makeImgCaptcha()
     if (session_status() == PHP_SESSION_NONE) {
         session_start();
     }
-    $image = ImageCreateFromPng("resources/captcha100x40.png");
+    $image = ImageCreateFromPng("../resources/captcha100x40.png");
 
     # randomise colour for text
     $red = rand(80, 130);

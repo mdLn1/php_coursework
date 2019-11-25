@@ -36,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if ($stmt = $dbConnect->query("SELECT email FROM users WHERE ID = $id")) {
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $email = $result["email"];
-                // mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
+                mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
                 array_push($sentTo, $email);
             }
         }
@@ -51,7 +51,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $email = $result["email"];
                 array_push($sentTo, $email);
-                // mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
+                mail($email, $subject, $body, "From: cp3526m@gre.ac.uk\r\n");
             }
         }
         

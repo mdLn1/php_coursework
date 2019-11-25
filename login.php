@@ -1,23 +1,26 @@
 <?php
 session_start();
-include "functionality/createCaptcha.php";
 include "checks/isLogged.php";
 include "database.php";
-include "example.php";
 
 // Define variables and initialize with empty values
-$ID = $password = $confirm_captcha = "";
-$ID_err = $password_err = $confirm_captcha_err = "";
+$ID = $password = "";
+$ID_err = $password_err = "";
 
 // Processing form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["login"])) {
   $db = new Database();
-  $correctCaptcha = $_SESSION["captcha"];
   // Check if ID is empty
   if (empty(trim($_POST["ID"]))) {
     $ID_err = "Please enter your ID.";
   } else {
     $ID = trim($_POST["ID"]);
+      if (strlen($ID) !== 9) {
+            $ID_err = "Your ID must have exactly 9 characters.";
+        }
+        if (preg_match('/[^0-9]/', $ID)) {
+            $ID_err = "Your ID must be formed of digits only.";
+        }
   }
 
   // Check if password is empty
@@ -27,20 +30,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["login"])) {
     $password = trim($_POST["password"]);
   }
 
-  if (empty(trim($_POST["confirm_captcha"]))) {
-    $confirm_captcha_err = "Captcha string does not match";
-    $confirm_captcha = "";
-  } else {
-    if (trim($_POST["confirm_captcha"]) != $correctCaptcha) {
-      $confirm_captcha_err = "Captcha string does not match";
-      $confirm_captcha = "";
-    } else {
-      $confirm_captcha = trim($_POST["confirm_captcha"]);
-    }
-  }
 
   // Validate credentials
-  if (empty($ID_err) && empty($password_err) && empty($confirm_captcha_err)) {
+  if (empty($ID_err) && empty($password_err)) {
     // Prepare a select statement
     if ($result = $db->getUserDetails($ID)) {
 
@@ -62,11 +54,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["login"])) {
         }
       } else {
         // Display an error message if password is not valid
+          $password = "";
         $password_err = "The password you entered was not valid.";
       }
     }
-  } else {
-    echo "Oops! Something went wrong. Please try again later.";
   }
 }
 ?>
@@ -97,43 +88,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["login"])) {
         <div class="form-group  <?php echo (!empty($ID_err)) ? 'has-error' : ''; ?>">
           <label for="id1">ID</label>
           <input type="text" class="form-control" name="ID" id="id1" aria-describedby="IDHelp" placeholder="Enter ID" value="<?php echo $ID ?>">
-          <span class="error-input"><?php echo $ID_err; ?></span>
+          <span class="error-input" id="id-error"><?php echo $ID_err; ?></span>
         </div>
         <div class="form-group <?php echo (!empty($password_err)) ? 'has-error' : ''; ?>">
           <label for="exampleInputPassword1">Password</label>
           <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" value="<?php echo $password ?>">
           <span class="error-input"><?php echo $password_err; ?></span>
-        </div>
-        <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
-          <img id="captcha-image" src='data:image/jpeg;base64,<?php $captchaImg = makeImgCaptcha();
-                                                              echo $captchaImg; ?>' alt="captcha image" />
-          <input type="button" id="captcha-button" value="Regenerate" />
-          <?php echo $_SESSION["captcha"]; ?>
-          <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
-          <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
-        </div>
-        <button type="submit" name="login" class="btn btn-primary">Login</button>
+       
+        <button type="submit" name="login" class="btn btn-primary" style="margin-top: .5rem; display: block;">Login</button>
       </form>
       <p>Don't have an account yet? <a href="register.php">Sign up here</a></p>
     </div>
   </div>
   <script>
     $(document).ready(function() {
-      $("#captcha-button").on('click', function(event) {
-        event.preventDefault();
-        $.ajax({
-          url: 'createCaptcha.php',
-          data: {
-            action: 'regenerate'
-          },
-          type: 'GET',
-          dataType: 'JSON',
-          success: function(output) {
-            // console.log(output.imageCode);
-            $("#captcha-image").attr("src", "data:image/jpeg;base64," + output.imageCode)
-          }
-        })
-      })
+     
+        $("#id1").on("keyup paste", function(event) {
+                let re = /[^0-9]/;
+                if (re.test(event.target.value)) {
+                    el = event.target.value.match(/[0-9]+/);
+                    if (el !== null) {
+                        $(this).val(el[0]);
+                        
+                    } else {
+                        $(this).val("");
+                    }
+                    $(this).css("border", "3px solid red");
+                        $("#id-error").css("display", "block");
+                    $("#id-error").css("color", "red");
+                    $("#id-error").text("An ID must contain only digits.");
+                        setTimeout(function() {
+                            $("#id-error").css("display", "none");
+                            $("#id1").css("border", "0");
+                        }, 3000);
+                }
+            });
+        
+            doCaptcha();
     });
   </script>
   <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.html") ?>

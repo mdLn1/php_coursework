@@ -17,6 +17,7 @@ if ($result = $db->dontWorryQuery("SELECT * FROM assessments WHERE grader_id = "
     $data = $result;
 }
 
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dbConnect = $db->getDbConnection();
     $justification = $graded_id = $grader_id = "";
@@ -43,13 +44,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!empty(trim($_POST["grade"]))) {
         $grade = trim($_POST["grade"]);
-        if (preg_match('/[^1-9]/', $grade)) {
+        if (preg_match('/[^0-9]/', $grade)) {
             $grade_err = "Grade value must be between 0 and 10 inclusive";
         }
         if ($grade < 0 || $grade > 10) {
             $grade_err = "Grade value must be between 0 and 10 inclusive";
-        }
+        } 
     }
+    
+        
     if (empty($grade_err) && empty($graded_id_err) && empty($justification_err)) {
         if (!empty($_FILES["fileToUpload"]["size"])) {
             if (!preg_match('/gif|png|x-png|jpeg/', $_FILES['fileToUpload']['type'])) {
@@ -96,6 +99,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $sql = "";
         if ($finalize) {
+                if ($grade === 0) {
+                    $grade_err = "Grade must be between 1 and 10 inclusive.";
+                }
+                    if (strlen($justification) < 10) {
+                        $justification_err = "Justification must be at least 10 characters long.";
+                        }
+        
+                        
             $sql = "UPDATE assessments SET grade = ?, justification = ?, finalized = 1 WHERE grader_id = ? AND graded_id = ?";
         } else if ($save) {
             $sql = "UPDATE assessments SET grade = ?, justification = ? WHERE grader_id = ? AND graded_id = ?";
@@ -104,28 +115,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $justification = "";
             $grade = 0;
         }
+        if(empty($grade_err) && empty($justification_err)){
         if ($stmt = $dbConnect->prepare($sql)) {
-            if ($finalize) {
-                if ($grade === 0 || $grade > 10) {
-                    $grade_err = "Grade must be between 1 and 10 inclusive.";
-                    return;
-                }
-            }
+            
             if ($stmt->execute([$grade, $justification, $grader_id, $graded_id])) {
                 if ($delete) {
                     $record_updated = "Information deleted for $graded_id.";
+                    $data = array();
+                            if ($result = $db->dontWorryQuery("SELECT * FROM assessments WHERE grader_id = " . $_SESSION["ID"])) {
+    $data = $result;
+}
                 } else {
                     if ($finalize) {
+                if ($grade === 0) {
+                    $grade_err = "Grade must be between 1 and 10 inclusive.";
+                }
+                    if (strlen($justification) < 10) {
+                        $justification_err = "Justification must be at least 10 characters long.";
+                        }
+        
+                        if(empty($grade_err) && empty($justification_err)){
+                            
+                        
                         if ($db->finalizeGrade($graded_id)) {
+                            $data = array();
+                            if ($result = $db->dontWorryQuery("SELECT * FROM assessments WHERE grader_id = " . $_SESSION["ID"])) {
+                                $data = $result;
+                            }
                             $record_updated = "<p>Information has been successfully updated for $graded_id.</p>";
-                        } else {
-                            $record_updated = "<p>Update failed for student $graded_id.</p>";
+                        } 
                         }
                     } else {
+                        $data = array();
+                            if ($result = $db->dontWorryQuery("SELECT * FROM assessments WHERE grader_id = " . $_SESSION["ID"])) {
+    $data = $result;
+}
                         $record_updated = "<p>Information has been successfully updated for $graded_id.</p>";
                     }
                 }
             }
+        }
         }
     }
 }
@@ -199,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="form-group row">
                             <label for="justification" class="col col-form-label">Justification:</label>
                             <div class="col-6 col-sm-8 col-md-8 col-lg-8">
-                                <input type="text" readonly class="form-control-plaintext" id="justification" value="<?php echo $value["justification"]; ?>" />
+                                <input type="text" readonly class="form-control-plaintext" id="justification" value="<?php echo htmlentities($value["justification"]); ?>" />
                             </div>
                         </div>
                         <?php if ($value['image_id'] !== NULL) : ?>

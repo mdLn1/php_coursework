@@ -1,9 +1,7 @@
 <?php
 session_start();
-
 include "checks/loggedIn.php";
 include "checks/studentLogged.php";
-
 
 ?>
 <!DOCTYPE html>
@@ -92,6 +90,55 @@ include "checks/studentLogged.php";
         .pagination {
             justify-content: center;
         }
+        .form-inline.my-2.my-lg-0 {
+            position: absolute; 
+            right: 0; 
+            top: 0;
+        }
+        #input-form {
+            display: inline-block; 
+            position: relative;
+        }
+        #search-content {
+            padding-left: 1rem;
+            margin-left: 1rem;
+        }
+        @media only screen and (max-width: 766px) {
+            #search-form {
+                position:relative;
+                text-align:center;
+                margin:0 auto;
+            }
+            
+        }
+        @media only screen and (max-width: 600px) {
+            #search-form > div {
+                display: block;
+            }
+            .dropdown {
+                margin-bottom: .5rem;
+            }
+            .form-group {
+                margin-bottom: 0;
+            }
+            #input-form{
+                padding-right:1rem; 
+                padding-left: 1rem;
+            }
+            #search-content{
+                margin-left:0; 
+            }
+        }
+        @media only screen and (max-width: 400px) {
+            #input-form{
+                padding-left: 0;
+                margin-bottom: 1rem;
+            }
+            #submit-div {
+                margin-top:.5rem;
+            }
+        }
+        
     </style>
 
 </head>
@@ -104,7 +151,7 @@ include "checks/studentLogged.php";
             <p id="error-message"></p>
         </div>
         <div style="position: relative; margin-bottom: 1rem; padding-bottom: 1rem;">
-            <form class="form-inline my-2 my-lg-0" style="position: absolute; right: 0; top: 0;" id="search-form">
+            <div class="form-inline my-2 my-lg-0" id="search-form">
                 <div class="dropdown">
                     <button class="dropbtn btn btn-secondary">Search By: <span id="search-criteria">ID</span> <i class="arrow down"></i></button>
                     <div class="dropdown-content">
@@ -119,14 +166,15 @@ include "checks/studentLogged.php";
                         <span class="grade-option">Under</span>
                     </div>
                 </div>
-                <div class="form-group" style="display: inline-block; position: relative;">
-                    <input class="form-control mr-sm-2" type="text" id="search-content" style="padding-left: 1rem; margin-left: 1rem;" placeholder="Search">
+                <div class="form-group" id="input-form">
+                    <input class="form-control mr-sm-2" type="text" id="search-content" placeholder="Search">
                     <span id="search-error" style="position:absolute; color:red; top: -1.5rem; left: 1rem; display:none;">Only digits allowed!</span>
                     <span id="last-search" style="display:none; position:absolute; bottom: -1.5rem; left: 1rem;">Last search: <span id="last-search-text" style="text-decoration:underline; color:blue; cursor: pointer;"></span></span>
                 </div>
-                <input type="submit" class="btn btn-success" value="Search" />
-                </input>
-            </form>
+                <div id="submit-div">
+                <button type="button" class="btn btn-success" id="search-button">Search</button>
+                    </div>
+            </div>
         </div>
         <div id="sorting-container" style="display: none;">
             <div class="dropdown">
@@ -186,6 +234,10 @@ include "checks/studentLogged.php";
             $("tbody").on("click", ".grpid", function() {
                 window.location = 'groupRecord.php?group=' + $(this).text().trim();
             });
+            
+            $(".dropdown").on("click", (e) => {
+                e.preventDefault();
+            });
 
             function checkPaging() {
                 if (totalPages === 1) {
@@ -210,17 +262,18 @@ include "checks/studentLogged.php";
                     el = event.target.value.match(/[0-9]+/);
                     if (el !== null) {
                         $(this).val(el[0]);
-                        $(this).css("border", "3px solid red");
+                        
+                    } else {
+                        $(this).val("");
+                    }
+                    $(this).css("border", "3px solid red");
                         $("#search-error").css("display", "block");
                         setTimeout(function() {
                             $("#search-error").css("display", "none");
                             $("#search-content").css("border", "0");
                         }, 3000);
-                    } else {
-                        $(this).val("");
-                    }
                 }
-            })
+            });
 
             $(".search-option").on("click", function(event) {
                 event.preventDefault();
@@ -250,7 +303,7 @@ include "checks/studentLogged.php";
                 $("#last-search").css("display", "none");
             })
 
-            $("#search-form").on("submit", function(event) {
+            $("#search-button").on("click", function(event) {
                 event.preventDefault();
                 var searchedFor = document.getElementById("current-search-results");
                 let searchValue = $("#search-content").val();
@@ -264,6 +317,10 @@ include "checks/studentLogged.php";
                 } else {
                     queryString = `?studentId=${searchValue}`;
                     searchedFor.innerHTML = `Search students IDs containing "${searchValue}"`;
+                }
+                if(!searchValue){
+                    queryString = "";
+                    pageNumber = 1;
                 }
                 searchRecords(true);
                 $("#search-content").val("");

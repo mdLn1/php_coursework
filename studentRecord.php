@@ -4,13 +4,11 @@ include "checks/loggedIn.php";
 include "checks/studentLogged.php";
 include "functionality/errorResponse.php";
 include "database.php";
-
 $data = array();
 $studentid = $overall = $votes = $found = 0;
 $overall_err = $req_err = "";
 $finished = false;
 $db = new Database();
-
 if (!empty($_SERVER['QUERY_STRING'])) {
     $queries = array();
     parse_str($_SERVER['QUERY_STRING'], $queries);
@@ -102,7 +100,7 @@ if (!empty($_SERVER['QUERY_STRING'])) {
                     <div class="form-group row">
                         <label for="justification" class="col col-form-label">Justification:</label>
                         <div class="col-6 col-sm-8 col-md-8 col-lg-8">
-                            <input type="text" readonly class="form-control-plaintext" id="justification" value="<?php echo $value["justification"]; ?>" />
+                            <input type="text" readonly class="form-control-plaintext" id="justification" value="<?php echo htmlentities($value["justification"]); ?>" />
                         </div>
                     </div>
                     <?php if ($value['image_id'] !== NULL) : ?>
@@ -127,14 +125,14 @@ if (!empty($_SERVER['QUERY_STRING'])) {
             <p>No colleagues registered yet!</p>
         <?php endif; ?>
     </div>
+    <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.html") ?>
     <script>
         $(document).ready(function() {
-            $(".stdid").click(function() {
+        $(".stdid").on("click",  function() {
                 window.location = 'studentRecord.php?studentid=' + $(this).text().trim();
             });
         });
     </script>
-    <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.html") ?>
 </body>
 
 </html>
