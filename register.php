@@ -141,13 +141,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <form method="post" id="signupForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
                 <div class="form-group <?php echo (!empty($ID_err)) ? 'has-error' : ''; ?>">
                     <label for="ID">ID</label>
-                    <input type="text" class="form-control" name="ID" id="id1" aria-describedby="IDHelp" placeholder="Enter ID" value="<?php echo $ID; ?>">
+                    <input type="text" class="form-control" name="ID" id="id1" aria-describedby="IDHelp" required placeholder="Enter ID" value="<?php echo $ID; ?>">
                     <span class="error-input" id="id-error"><?php echo $ID_err; ?></span>
                 </div>
 
                 <div class="form-group <?php echo (!empty($email_err)) ? 'has-error' : ''; ?>">
                     <label for="email">Email</label>
-                    <input type="email" class="form-control" name="email" id="email" aria-describedby="email" placeholder="Enter your email address" value="<?php echo $email; ?>">
+                    <input type="email" class="form-control" name="email" id="email" aria-describedby="email" required placeholder="Enter your email address" value="<?php echo $email; ?>">
                     <span class="error-input"><?php echo $email_err; ?></span>
                 </div>
                 <div class="form-group <?php echo (!empty($group_err)) ? 'has-error' : ''; ?>">
@@ -162,18 +162,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
                 <div class="form-group <?php echo (!empty($password_err)) ? 'has-error' : ''; ?>">
                     <label for="exampleInputPassword1">Password</label>
-                    <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" value="<?php echo $password ?>">
+                    <input type="password" name="password" class="form-control" id="exampleInputPassword1" required placeholder="Password" value="<?php echo $password ?>">
                     <span class="error-input"><?php echo $password_err; ?></span>
                 </div>
                 <div class="form-group <?php echo (!empty($confirm_password_err)) ? 'has-error' : ''; ?>">
                     <label for="exampleInputPassword2">Confirm Password</label>
-                    <input type="password" name="confirm_password" class="form-control" id="exampleInputPassword2" placeholder="Confirm Password" value="<?php echo $confirm_password ?>">
+                    <input type="password" name="confirm_password" class="form-control" id="exampleInputPassword2" required placeholder="Confirm Password" value="<?php echo $confirm_password ?>">
                     <span class="error-input"><?php echo $confirm_password_err; ?></span>
                 </div>
                 <div class="form-group <?php echo (!empty($confirm_captcha_err)) ? 'has-error' : ''; ?>">
                     <img id="captcha-image" alt="captcha image" />
                     <input type="button" id="captcha-button" value="Regenerate" />
-                    <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
+                    <input type="text" name="confirm_captcha" class="form-control" id="confirm_captcha" required placeholder="Confirm Captcha" value="<?php echo $confirm_captcha ?>">
                     <span class="error-input"><?php echo $confirm_captcha_err; ?></span>
                 </div>
                 <button type="submit" class="btn btn-primary">Sign up</button>
@@ -216,7 +216,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         setTimeout(function() {
                             $("#id-error").css("display", "none");
                             $("#id1").css("border", "0");
-                        }, 3000);
+                        }, 5000);
                 }
             });
             doCaptcha();

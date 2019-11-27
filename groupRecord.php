@@ -12,8 +12,8 @@ if (!empty($_SERVER['QUERY_STRING'])) {
     parse_str($_SERVER['QUERY_STRING'], $queries);
     if (isset($queries["group"])) {
         $group = $queries["group"];
-        if (preg_match('/[^1-9]/', $group) || $group < 1 || $group > 10) {
-            $group_err = "Group number must be between 1 and 10 inclusive.";
+        if (preg_match('/[^0-9]/', $group) || $group < 1 || $group > 10) {
+            $group_err = "Group number must be a number between 1 and 10 inclusive.";
         }
     } else {
         $group_err = "Group number must be between 1 and 10 inclusive.";
@@ -43,10 +43,23 @@ if (!empty($_SERVER['QUERY_STRING'])) {
             max-width: 50rem;
             width: 80%;
         }
+        i {
+            border: solid white;
+            border-width: 0 3px 3px 0;
+            display: inline-block;
+            padding: 3px;
+            margin-top: -13px;
+            margin-left: .5rem;
+        }
+
+        .down {
+            transform: rotate(45deg);
+            -webkit-transform: rotate(45deg);
+        }
     </style>
 </head>
 
-<body>
+<body style="height: 100vw;">
     <?php include("pageContent/navbar.php") ?>
     <div style="padding: 1rem;">
         <div id="container-table">
@@ -119,59 +132,8 @@ if (!empty($_SERVER['QUERY_STRING'])) {
     </div>
     <?php if (!(isset($_COOKIE["CookiesAccepted"]) && $_COOKIE["CookiesAccepted"] === "yes")) include("pageContent/cookieAlert.html") ?>
 
-    <script>
-        $(document).ready(function() {
-            $("#reminder").on("click", function() {
-                sendRequest(completed = false);
-            });
-            $("#completed").on("click", function() {
-                sendRequest(completed = true);
-            });
-
-            function sendRequest(completed = false) {
-                let group = parseInt($("#group_number").val());
-                let reqData = {
-                    group_number: group
-                };
-                if (!completed) {
-                    reqData.reminderGrades = "set";
-                } else {
-                    reData.completedGrades = "set";
-                }
-                $.ajax({
-                    url: 'sendMail.php',
-                    data: reqData,
-                    type: 'POST',
-                    dataType: 'JSON',
-                    success: function(output, status, xhr) {
-                        $("#top-alert-success").css("display", "block");
-                        if (completed) {
-                            $("#completed").prop("disabled", true);
-                            $("#completed").css("background-color", "gray");
-                            $("#completed").css("border", "none");
-                            $("#completed").blur();
-                            $("#success-message").text("Final grades emailed to group members");
-                        } else {
-                            $("#reminder").prop("disabled", true);
-                            $("#reminder").css("background-color", "gray");
-                            $("#reminder").css("border", "none");
-                            $("#reminder").blur();
-                            $("#success-message").text("Reminder email sent to group members");
-                        }
-                        setTimeout(function() {
-                            $("#top-alert").css("display", "none");
-                        }, 5000);
-                    },
-                    error: function(xhr, status, error) {
-                        $("#top-alert-error").css("display", "block");
-                        $("#error-message").text(xhr.responseJSON.message);
-                        setTimeout(function() {
-                            $("#top-alert-error").css("display", "none");
-                        }, 5000);
-                    }
-                });
-            }
-        });
+    <script src="scriptsjs/groupRecord.js">
+       
     </script>
 </body>
 

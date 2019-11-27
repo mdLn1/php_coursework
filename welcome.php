@@ -135,15 +135,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
         
                         if(empty($grade_err) && empty($justification_err)){
-                            
-                        
                         if ($db->finalizeGrade($graded_id)) {
                             $data = array();
                             if ($result = $db->dontWorryQuery("SELECT * FROM assessments WHERE grader_id = " . $_SESSION["ID"])) {
                                 $data = $result;
                             }
+                            
+                        }
                             $record_updated = "<p>Information has been successfully updated for $graded_id.</p>";
-                        } 
                         }
                     } else {
                         $data = array();

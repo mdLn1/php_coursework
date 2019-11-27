@@ -6,18 +6,12 @@ include "checks/studentLogged.php";
 include "functionality/errorResponse.php";
 include "database.php";
 
-define('URLFORM', 'https://stuweb.cms.gre.ac.uk/~cp3526m/coursework/welcomeTutor.php');
 $response = array();
 $queries = array();
 $data = [];
 $total_pages = $resultsFound = $offset = 0;
 $pageNumber = 1;
 $records_page = 5;
-// if(!isset($_SERVER['HTTP_REFERER'])){
-//     responseError("Invalid origin request", 403, "Forbidden");
-// } else if ($_SERVER['HTTP_REFERER'] != URLFORM){
-//     responseError("Invalid origin request", 403, "Forbidden");
-// }
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SERVER['QUERY_STRING'])) {
@@ -44,11 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SERVER['QUERY_STRING'])) {
         $sqlSearch = 'SELECT * FROM students WHERE ID REGEXP "' . $studentid . '" ORDER BY ID LIMIT ' . $offset . ',' . $records_page . '';
     } else if (isset($queries['grade'])) {
         $grade = $queries['grade'];
-        if (preg_match('/[^1-9]/', $grade)) {
-            responseError("Grade must be a digit between 1 and 9 inclusive.", 400, "Bad Request");
+        if (preg_match('/[^0-9]/', $grade)) {
+            responseError("Grade must contain digits only.", 400, "Bad Request");
         }
-        if (!((int) $grade > 0 && (int) $grade < 10)) {
-            responseError("Grade must be a digit between 1 and 9 inclusive.", 400, "Bad Request");
+        if (!((int) $grade > 0 && (int) $grade < 11)) {
+            responseError("Grade must be a number between 1 and 10 inclusive.", 400, "Bad Request");
         }
         $filter = "";
         $sorting = "";

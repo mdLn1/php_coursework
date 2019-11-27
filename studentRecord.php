@@ -91,6 +91,7 @@ if (!empty($_SERVER['QUERY_STRING'])) {
             <?php foreach ($data as $value) : ?>
                 <div class="col-12 col-sm-12 col-md-10 col-lg-6 assessment">
                     <h3 class="display-5">Assessment from <?php echo $value['grader_id'] ?></h3>
+                    <?php if ($value["finalized"] === 1) { ?>
                     <div class="form-group row">
                         <label for="grade" class="col col-form-label">Grade:</label>
                         <div class="col-6 col-sm-8 col-md-8 col-lg-8">
@@ -113,6 +114,9 @@ if (!empty($_SERVER['QUERY_STRING'])) {
                             </div>
                         </div>
                     <?php endif; ?>
+                    <?php } else { ?>
+                        <p style="color: red;">Peer review not finalized.</p>
+                    <?php } ?>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -130,6 +134,10 @@ if (!empty($_SERVER['QUERY_STRING'])) {
         $(document).ready(function() {
         $(".stdid").on("click",  function() {
                 window.location = 'studentRecord.php?studentid=' + $(this).text().trim();
+            });
+            $(".group-option").on("click", function(event){
+                event.preventDefault();
+                window.location = 'groupRecord.php?group=' + $(this).text().trim();
             });
         });
     </script>

@@ -87,12 +87,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["login"])) {
       <form method="post" id="loginForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
         <div class="form-group  <?php echo (!empty($ID_err)) ? 'has-error' : ''; ?>">
           <label for="id1">ID</label>
-          <input type="text" class="form-control" name="ID" id="id1" aria-describedby="IDHelp" placeholder="Enter ID" value="<?php echo $ID ?>">
+          <input type="text" class="form-control" name="ID" id="id1" aria-describedby="IDHelp" required placeholder="Enter ID" value="<?php echo $ID ?>">
           <span class="error-input" id="id-error"><?php echo $ID_err; ?></span>
         </div>
         <div class="form-group <?php echo (!empty($password_err)) ? 'has-error' : ''; ?>">
           <label for="exampleInputPassword1">Password</label>
-          <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" value="<?php echo $password ?>">
+          <input type="password" name="password" class="form-control" id="exampleInputPassword1" required placeholder="Password" value="<?php echo $password ?>">
           <span class="error-input"><?php echo $password_err; ?></span>
        
         <button type="submit" name="login" class="btn btn-primary" style="margin-top: .5rem; display: block;">Login</button>
@@ -120,7 +120,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["login"])) {
                         setTimeout(function() {
                             $("#id-error").css("display", "none");
                             $("#id1").css("border", "0");
-                        }, 3000);
+                        }, 5000);
                 }
             });
         
